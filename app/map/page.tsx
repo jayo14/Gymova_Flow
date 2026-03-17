@@ -25,18 +25,7 @@ import type { TrainerMapEntry } from "@/types/location"
 import type { RouteLine } from "./MapView"
 
 type ClientLocation = { lat: number; lng: number }
-type LocationStatus = "idle" | "loading" | "granted" | "denied" | "unreliable"
-
-// Rough Atlantic Canada / Nova Scotia bounds — reject GPS results outside this (e.g. VPN returning UK)
-const BOUNDS = {
-  latMin: 43.2,
-  latMax: 48.5,
-  lngMin: -67,
-  lngMax: -59,
-}
-function isInReasonableBounds(lat: number, lng: number): boolean {
-  return lat >= BOUNDS.latMin && lat <= BOUNDS.latMax && lng >= BOUNDS.lngMin && lng <= BOUNDS.lngMax
-}
+type LocationStatus = "idle" | "loading" | "granted" | "denied"
 type TrainerWithDistance = TrainerMapEntry & { distanceMi: number | null; distanceLabel: string }
 
 type RouteSegment = { distanceKm: number; durationMin: number; line: RouteLine } | null
@@ -210,13 +199,8 @@ export default function MapPage() {
 
   const geoRequestIdRef = useRef(0)
 
-  const applyLocation = (latitude: number, longitude: number, fromGps = false) => {
-    console.log("User location:", latitude, longitude, fromGps ? "(from GPS)" : "(manual)")
-    if (fromGps && !isInReasonableBounds(latitude, longitude)) {
-      console.warn("GPS position outside Atlantic Canada — ignoring (likely VPN/cache). Use address search.")
-      setLocationStatus("unreliable")
-      return
-    }
+  const applyLocation = (latitude: number, longitude: number, _fromGps = false) => {
+    console.log("User location:", latitude, longitude)
     setClientLocation({ lat: latitude, lng: longitude })
     setLocationStatus("granted")
   }
@@ -432,8 +416,6 @@ export default function MapPage() {
               title={
                 locationStatus === "granted"
                   ? "Location active — click to refresh"
-                  : locationStatus === "unreliable"
-                  ? "GPS looked wrong — set address above"
                   : locationStatus === "denied"
                   ? "Location permission denied"
                   : "Use my location to sort by distance"
@@ -441,8 +423,6 @@ export default function MapPage() {
               className={`border border-border transition-colors shadow-md ${
                 locationStatus === "granted"
                   ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : locationStatus === "unreliable"
-                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40"
                   : locationStatus === "denied"
                   ? "bg-destructive/10 text-destructive border-destructive/30"
                   : "bg-card"
@@ -469,8 +449,6 @@ export default function MapPage() {
                   <p className="text-xs text-muted-foreground">
                     📍 {clientLocation.lat.toFixed(4)}, {clientLocation.lng.toFixed(4)} · sorted by distance
                   </p>
-                ) : locationStatus === "unreliable" ? (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">GPS seems wrong — set your address above (e.g. Wolfville, NS)</p>
                 ) : locationStatus === "denied" ? (
                   <p className="text-xs text-muted-foreground">⚠️ Location denied — set address above or click map</p>
                 ) : (

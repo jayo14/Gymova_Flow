@@ -20,7 +20,7 @@ import {
   Filter,
   X,
   SlidersHorizontal,
-  Map,
+  Map as MapIcon,
   Dumbbell,
   Sparkles,
   Loader2,
@@ -405,7 +405,7 @@ export default function TrainersPage() {
           <div className="flex items-center gap-2">
             <Link href="/map">
               <Button variant="outline" size="sm" className="border-border text-foreground hover:bg-secondary">
-                <Map className="w-4 h-4 mr-2" />
+                <MapIcon className="w-4 h-4 mr-2" />
                 Map View
               </Button>
             </Link>
@@ -611,7 +611,11 @@ export default function TrainersPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredTrainers.map((trainer) => (
-                  <TrainerCard key={trainer.id} trainer={trainer} />
+                  <TrainerCard
+                    key={trainer.id}
+                    trainer={trainer}
+                    aiReason={aiMatchMap?.get(trainer.id)?.reason}
+                  />
                 ))}
               </div>
 

@@ -15,9 +15,93 @@ import {
   Users,
   RefreshCw,
 } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
+
+// Lightweight markdown renderer: bold, headers, unordered lists
+function MarkdownContent({ text, className }: { text: string; className?: string }) {
+  const lines = text.split("\n")
+  const elements: React.ReactNode[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // H3 ###
+    if (line.startsWith("### ")) {
+      elements.push(
+        <p key={i} className="font-semibold mt-3 mb-1">
+          {renderInline(line.slice(4))}
+        </p>
+      )
+    }
+    // H2 ##
+    else if (line.startsWith("## ")) {
+      elements.push(
+        <p key={i} className="font-bold mt-4 mb-1">
+          {renderInline(line.slice(3))}
+        </p>
+      )
+    }
+    // H1 #
+    else if (line.startsWith("# ")) {
+      elements.push(
+        <p key={i} className="font-bold text-base mt-4 mb-1">
+          {renderInline(line.slice(2))}
+        </p>
+      )
+    }
+    // Unordered list - or *
+    else if (/^[-*] /.test(line)) {
+      elements.push(
+        <div key={i} className="flex gap-2 my-0.5">
+          <span className="shrink-0 mt-px">•</span>
+          <span>{renderInline(line.slice(2))}</span>
+        </div>
+      )
+    }
+    // Numbered list
+    else if (/^\d+\. /.test(line)) {
+      const match = line.match(/^(\d+)\. (.*)$/)
+      if (match) {
+        elements.push(
+          <div key={i} className="flex gap-2 my-0.5">
+            <span className="shrink-0 mt-px">{match[1]}.</span>
+            <span>{renderInline(match[2])}</span>
+          </div>
+        )
+      }
+    }
+    // Empty line = spacer
+    else if (line.trim() === "") {
+      elements.push(<div key={i} className="h-2" />)
+    }
+    // Normal paragraph
+    else {
+      elements.push(
+        <p key={i} className="my-0.5">
+          {renderInline(line)}
+        </p>
+      )
+    }
+  }
+
+  return <div className={`text-sm leading-relaxed ${className ?? ""}`}>{elements}</div>
+}
+
+function renderInline(text: string): React.ReactNode {
+  // Handle **bold** and *italic*
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <em key={i}>{part.slice(1, -1)}</em>
+    }
+    return part
+  })
+}
 
 const examplePrompts = [
   {
@@ -52,16 +136,29 @@ const initialMessages: Message[] = []
 
 export default function AICoachPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { session, loading } = useAuth()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const sentInitialRef = useRef(false)
 
   useEffect(() => {
     if (!loading && !session) {
       router.replace("/login")
     }
   }, [loading, session, router])
+
+  // Auto-send query from ?q= param (e.g. from dashboard quick-send)
+  useEffect(() => {
+    if (loading || !session || sentInitialRef.current) return
+    const q = searchParams?.get("q")
+    if (q) {
+      sentInitialRef.current = true
+      handleSend(q)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, session, searchParams])
 
   if (loading || (!session && typeof window !== "undefined")) {
     return (
@@ -184,9 +281,16 @@ export default function AICoachPage() {
                   <div className={`max-w-[80%] ${message.role === "user" ? "order-1" : ""}`}>
                     <Card className={`${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border-border"}`}>
                       <CardContent className="p-4">
-                        <p className={`text-sm whitespace-pre-wrap ${message.role === "user" ? "text-primary-foreground" : "text-card-foreground"}`}>
-                          {message.content}
-                        </p>
+                        {message.role === "assistant" ? (
+                          <MarkdownContent
+                            text={message.content}
+                            className="text-card-foreground"
+                          />
+                        ) : (
+                          <p className="text-sm whitespace-pre-wrap text-primary-foreground">
+                            {message.content}
+                          </p>
+                        )}
                       </CardContent>
                     </Card>
                   </div>

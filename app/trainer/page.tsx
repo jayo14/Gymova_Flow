@@ -13,43 +13,11 @@ import {
   ArrowRight,
   UserCircle,
 } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
-
-const upcomingSessions = [
-  {
-    id: 1,
-    clientName: "Alex M.",
-    date: "Today",
-    time: "2:00 PM - 3:00 PM",
-    location: "Downtown Fitness Center",
-    type: "in-person" as const,
-    status: "confirmed" as const,
-  },
-  {
-    id: 2,
-    clientName: "Jordan K.",
-    date: "Tomorrow",
-    time: "9:00 AM - 10:00 AM",
-    location: "Online",
-    type: "virtual" as const,
-    status: "confirmed" as const,
-  },
-  {
-    id: 3,
-    clientName: "Sam R.",
-    date: "Mar 10",
-    time: "4:00 PM - 5:00 PM",
-    location: "Iron Paradise Gym",
-    type: "in-person" as const,
-    status: "pending" as const,
-  },
-]
-
-const stats = [
-  { label: "Sessions This Week", value: "8", icon: Calendar, change: "+2 from last week" },
-  { label: "Total Clients", value: "24", icon: User, change: "Active" },
-  { label: "Earnings (Month)", value: "$2,400", icon: DollarSign, change: "Up 12%" },
-]
+import { getTrainerByUserId } from "@/lib/supabase/trainers"
+import { getTrainerBookings } from "@/lib/supabase/bookings"
+import type { Booking } from "@/types/booking"
 
 export default function TrainerDashboardPage() {
   const { user } = useAuth()
@@ -58,11 +26,97 @@ export default function TrainerDashboardPage() {
     user?.email?.split("@")[0] ||
     "Trainer"
 
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(true)
+  const [trainerPrice, setTrainerPrice] = useState<number>(0)
+
+  useEffect(() => {
+    if (!user) return
+    getTrainerByUserId(user.id).then(async ({ data: trainerRow }) => {
+      if (!trainerRow) { setLoadingBookings(false); return }
+      const { data } = await getTrainerBookings(trainerRow.id)
+      setBookings(data)
+      setLoadingBookings(false)
+    })
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    import("@/lib/supabaseClient").then(({ supabase }) => {
+      supabase
+        .from("trainers")
+        .select("price")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data && typeof (data as { price?: number }).price === "number") {
+            setTrainerPrice((data as { price: number }).price)
+          }
+        })
+    })
+  }, [user])
+
+  const now = new Date()
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - now.getDay())
+  weekStart.setHours(0, 0, 0, 0)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const sessionsThisWeek = bookings.filter(b =>
+    (b.status === "confirmed" || b.status === "completed") &&
+    new Date(b.booking_date) >= weekStart
+  ).length
+
+  const uniqueClients = new Set(bookings.map(b => b.client_id)).size
+
+  const monthlyEarnings = bookings.filter(b =>
+    b.status === "completed" &&
+    new Date(b.booking_date) >= monthStart
+  ).length * trainerPrice
+
+  const stats = [
+    {
+      label: "Sessions This Week",
+      value: loadingBookings ? "—" : String(sessionsThisWeek),
+      icon: Calendar,
+      change: loadingBookings ? "" : sessionsThisWeek > 0 ? `${sessionsThisWeek} sessions` : "No sessions yet"
+    },
+    {
+      label: "Total Clients",
+      value: loadingBookings ? "—" : String(uniqueClients),
+      icon: User,
+      change: "Active"
+    },
+    {
+      label: "Earnings (Month)",
+      value: loadingBookings ? "—" : trainerPrice > 0 ? `$${monthlyEarnings.toLocaleString()}` : "—",
+      icon: DollarSign,
+      change: loadingBookings ? "" : monthlyEarnings > 0 ? "This month" : trainerPrice === 0 ? "Set your price" : "No completed sessions"
+    },
+  ]
+
+  const upcomingSessions = bookings
+    .filter(b =>
+      (b.status === "confirmed" || b.status === "pending") &&
+      new Date(b.booking_date) >= new Date(now.toDateString())
+    )
+    .sort((a, b) => a.booking_date.localeCompare(b.booking_date))
+    .slice(0, 3)
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + "T00:00:00")
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+    if (d.toDateString() === today.toDateString()) return "Today"
+    if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow"
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {displayName}. Here’s your overview.</p>
+        <p className="text-muted-foreground">Welcome back, {displayName}. Here&apos;s your overview.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -97,7 +151,9 @@ export default function TrainerDashboardPage() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {upcomingSessions.length === 0 ? (
+              {loadingBookings ? (
+                <p className="text-sm text-muted-foreground py-4">Loading sessions...</p>
+              ) : upcomingSessions.length === 0 ? (
                 <p className="text-muted-foreground py-4">
                   No upcoming sessions. Set your availability so clients can book you.
                 </p>
@@ -111,16 +167,16 @@ export default function TrainerDashboardPage() {
                       <User className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-card-foreground">{session.clientName}</p>
+                      <p className="font-medium text-card-foreground">Client</p>
                       <p className="text-sm text-muted-foreground">
-                        {session.type === "virtual" ? "Virtual" : session.location}
+                        {session.goal_note ?? "Session booked"}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-card-foreground">{session.date}</p>
+                      <p className="text-sm font-medium text-card-foreground">{formatDate(session.booking_date)}</p>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3" />
-                        {session.time}
+                        {session.start_time.slice(0, 5)}
                       </div>
                     </div>
                     <span
@@ -194,7 +250,7 @@ export default function TrainerDashboardPage() {
             <CardContent>
               <p className="text-sm text-muted-foreground">
                 Keep your availability up to date so clients can find and book you. You can log when
-                you’re available from the availability page.
+                you&apos;re available from the availability page.
               </p>
             </CardContent>
           </Card>

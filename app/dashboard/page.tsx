@@ -5,71 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Calendar, Clock, MapPin, Star, Search, Sparkles, TrendingUp, Target, Flame, Send, ArrowRight } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
-
-const upcomingSessions = [
-  {
-    id: 1,
-    trainer: "Mike Thompson",
-    specialty: "Strength Training",
-    date: "Today",
-    time: "2:00 PM",
-    location: "Downtown Gym"
-  },
-  {
-    id: 2,
-    trainer: "Lisa Chen",
-    specialty: "HIIT & Cardio",
-    date: "Tomorrow",
-    time: "9:00 AM",
-    location: "FitZone Studio"
-  },
-  {
-    id: 3,
-    trainer: "James Wilson",
-    specialty: "Yoga & Flexibility",
-    date: "Mar 10",
-    time: "7:00 PM",
-    location: "Zen Fitness Center"
-  }
-]
-
-const recommendedTrainers = [
-  {
-    id: 1,
-    name: "Sarah Miller",
-    specialty: "Weight Loss",
-    rating: 4.9,
-    reviews: 124,
-    price: 75,
-    image: null
-  },
-  {
-    id: 2,
-    name: "David Park",
-    specialty: "Bodybuilding",
-    rating: 4.8,
-    reviews: 89,
-    price: 85,
-    image: null
-  },
-  {
-    id: 3,
-    name: "Emma Roberts",
-    specialty: "CrossFit",
-    rating: 4.9,
-    reviews: 156,
-    price: 80,
-    image: null
-  }
-]
-
-const progressStats = [
-  { label: "Workouts This Week", value: "5", icon: Flame, change: "+2 from last week" },
-  { label: "Sessions Completed", value: "24", icon: Target, change: "This month" },
-  { label: "Current Streak", value: "12 days", icon: TrendingUp, change: "Personal best!" }
-]
+import { getClientBookings } from "@/lib/supabase/bookings"
+import { getTrainers } from "@/lib/supabase/trainers"
+import type { BookingWithTrainer } from "@/types/booking"
+import type { TrainerListItem } from "@/types/trainer"
 
 const aiSuggestions = [
   "Create a beginner workout routine",
@@ -81,11 +22,109 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [aiMessage, setAiMessage] = useState("")
+  const [bookings, setBookings] = useState<BookingWithTrainer[]>([])
+  const [trainerList, setTrainerList] = useState<TrainerListItem[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(true)
 
   const displayName =
     (user?.user_metadata as { full_name?: string } | undefined)?.full_name ||
     user?.email?.split("@")[0] ||
     "there"
+
+  useEffect(() => {
+    if (!user) return
+    getClientBookings(user.id).then(({ data }) => {
+      setBookings(data)
+      setLoadingBookings(false)
+    })
+    getTrainers().then(({ data }) => {
+      if (data.length > 0) setTrainerList(data)
+    })
+  }, [user])
+
+  // Derive stats from real bookings
+  const now = new Date()
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - now.getDay())
+  weekStart.setHours(0, 0, 0, 0)
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const workoutsThisWeek = bookings.filter(b =>
+    b.status === "completed" &&
+    new Date(b.booking_date) >= weekStart
+  ).length
+
+  const sessionsThisMonth = bookings.filter(b =>
+    b.status === "completed" &&
+    new Date(b.booking_date) >= monthStart
+  ).length
+
+  const completedDates = bookings
+    .filter(b => b.status === "completed")
+    .map(b => b.booking_date)
+    .sort()
+
+  // Compute streak: count consecutive days ending today/yesterday
+  let streak = 0
+  if (completedDates.length > 0) {
+    const daySet = new Set(completedDates)
+    let check = new Date(now)
+    check.setHours(0, 0, 0, 0)
+    // If no workout today, start from yesterday
+    if (!daySet.has(check.toISOString().slice(0, 10))) {
+      check.setDate(check.getDate() - 1)
+    }
+    while (daySet.has(check.toISOString().slice(0, 10))) {
+      streak++
+      check.setDate(check.getDate() - 1)
+    }
+  }
+
+  const progressStats = [
+    {
+      label: "Workouts This Week",
+      value: loadingBookings ? "—" : String(workoutsThisWeek),
+      icon: Flame,
+      change: loadingBookings ? "" : workoutsThisWeek === 0 ? "No sessions yet" : `${workoutsThisWeek} completed`
+    },
+    {
+      label: "Sessions This Month",
+      value: loadingBookings ? "—" : String(sessionsThisMonth),
+      icon: Target,
+      change: loadingBookings ? "" : sessionsThisMonth === 0 ? "Start booking sessions" : "This month"
+    },
+    {
+      label: "Current Streak",
+      value: loadingBookings ? "—" : streak > 0 ? `${streak} day${streak !== 1 ? "s" : ""}` : "0 days",
+      icon: TrendingUp,
+      change: loadingBookings ? "" : streak >= 7 ? "Keep it up! 🔥" : streak > 0 ? "Great consistency!" : "Book a session to start"
+    }
+  ]
+
+  // Upcoming sessions: confirmed/pending bookings from today onwards
+  const upcomingSessions = bookings
+    .filter(b =>
+      (b.status === "confirmed" || b.status === "pending") &&
+      new Date(b.booking_date) >= new Date(now.toDateString())
+    )
+    .sort((a, b) => a.booking_date.localeCompare(b.booking_date))
+    .slice(0, 3)
+
+  // Format date nicely
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + "T00:00:00")
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+    if (d.toDateString() === today.toDateString()) return "Today"
+    if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow"
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  }
+
+  // Recommended trainers: top-rated from DB or fallback demo
+  const recommendedTrainers = trainerList
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 3)
 
   return (
     <div className="space-y-6">
@@ -137,28 +176,41 @@ export default function DashboardPage() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {upcomingSessions.map((session) => (
-                <div key={session.id} className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-card-foreground">{session.trainer}</p>
-                    <p className="text-sm text-muted-foreground">{session.specialty}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-card-foreground">{session.date}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      {session.time}
+              {loadingBookings ? (
+                <p className="text-sm text-muted-foreground py-4">Loading sessions...</p>
+              ) : upcomingSessions.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground text-sm">No upcoming sessions.</p>
+                  <Link href="/trainers">
+                    <Button variant="ghost" size="sm" className="mt-2 text-primary">
+                      Find a Trainer
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                upcomingSessions.map((session) => (
+                  <div key={session.id} className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-card-foreground">{session.trainers.name}</p>
+                      <p className="text-sm text-muted-foreground">{session.trainers.specialty}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-card-foreground">{formatDate(session.booking_date)}</p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        {session.start_time.slice(0, 5)}
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      <span className="truncate max-w-[100px]">{session.trainers.location}</span>
                     </div>
                   </div>
-                  <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-                    <MapPin className="w-3 h-3" />
-                    <span className="truncate max-w-[100px]">{session.location}</span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -190,6 +242,11 @@ export default function DashboardPage() {
                   </Link>
                 ))}
               </div>
+              {recommendedTrainers.length === 0 && !loadingBookings && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No trainers available yet.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -226,7 +283,7 @@ export default function DashboardPage() {
                   onChange={(e) => setAiMessage(e.target.value)}
                   className="pr-10 bg-input border-border"
                 />
-                <Link href="/ai-coach">
+                <Link href={`/ai-coach${aiMessage ? `?q=${encodeURIComponent(aiMessage)}` : ""}`}>
                   <Button size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 bg-primary hover:bg-primary/90">
                     <Send className="w-3 h-3 text-primary-foreground" />
                   </Button>

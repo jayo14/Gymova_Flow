@@ -7,15 +7,23 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
   Search,
   MapPin,
   Star,
   Filter,
   X,
   SlidersHorizontal,
-  ArrowLeft,
   Map,
-  Dumbbell
+  Dumbbell,
+  Sparkles,
+  Loader2,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
@@ -233,7 +241,9 @@ function FilterSidebar({
   )
 }
 
-function TrainerCard({ trainer }: { trainer: TrainerListItem }) {
+type AiMatch = { id: number; reason: string }
+
+function TrainerCard({ trainer, aiReason }: { trainer: TrainerListItem; aiReason?: string }) {
   return (
     <Link href={`/trainers/${trainer.id}`}>
       <Card className="bg-card border-border hover:border-primary/50 transition-colors h-full">
@@ -273,6 +283,12 @@ function TrainerCard({ trainer }: { trainer: TrainerListItem }) {
                 {spec}
               </span>
             ))}
+            {aiReason && (
+              <span className="px-2 py-0.5 rounded text-xs bg-primary/15 text-primary font-medium flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                {aiReason}
+              </span>
+            )}
           </div>
 
           <Button className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -293,6 +309,18 @@ export default function TrainersPage() {
   const [mounted, setMounted] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
+  // AI match state
+  const [aiMatches, setAiMatches] = useState<AiMatch[] | null>(null)
+  const [aiMatchLoading, setAiMatchLoading] = useState(false)
+  const [matchModalOpen, setMatchModalOpen] = useState(false)
+  const [goalForm, setGoalForm] = useState({
+    primary_goal: "",
+    experience_level: "",
+    preferred_training_style: "",
+    workout_days_per_week: "",
+    injuries_limitations: "",
+  })
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -308,16 +336,59 @@ export default function TrainersPage() {
     })
   }, [])
 
-  const filteredTrainers = trainerList.filter(trainer => {
-    const matchesSearch = trainer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         trainer.specialty.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesPrice = trainer.price >= priceRange[0] && trainer.price <= priceRange[1]
-    const matchesRating = trainer.rating === 0 ? true : trainer.rating >= minRating
-    const matchesSpec = selectedSpecs.length === 0 || 
-                       trainer.specializations.some(s => selectedSpecs.includes(s))
-    
-    return matchesSearch && matchesPrice && matchesRating && matchesSpec
-  })
+  const handleFindMatch = async () => {
+    setAiMatchLoading(true)
+    try {
+      const res = await fetch("/api/match-trainer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goals: goalForm,
+          trainers: trainerList.map((t) => ({
+            id: t.id,
+            name: t.name,
+            specialty: t.specialty,
+            specializations: t.specializations,
+            rating: t.rating,
+            price: t.price,
+          })),
+        }),
+      })
+      const { matches } = await res.json()
+      if (Array.isArray(matches) && matches.length > 0) {
+        setAiMatches(matches)
+      }
+    } catch (err) {
+      console.error("match-trainer error:", err)
+    } finally {
+      setAiMatchLoading(false)
+      setMatchModalOpen(false)
+    }
+  }
+
+  const clearAiMatch = () => setAiMatches(null)
+
+  // If AI match active, show trainers in ranked order with reasons
+  const aiMatchMap = aiMatches
+    ? new Map(aiMatches.map((m, i) => [m.id, { reason: m.reason, rank: i }]))
+    : null
+
+  const filteredTrainers = trainerList
+    .filter(trainer => {
+      const matchesSearch = trainer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           trainer.specialty.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesPrice = trainer.price >= priceRange[0] && trainer.price <= priceRange[1]
+      const matchesRating = trainer.rating === 0 ? true : trainer.rating >= minRating
+      const matchesSpec = selectedSpecs.length === 0 || 
+                         trainer.specializations.some(s => selectedSpecs.includes(s))
+      return matchesSearch && matchesPrice && matchesRating && matchesSpec
+    })
+    .sort((a, b) => {
+      if (!aiMatchMap) return 0
+      const ra = aiMatchMap.get(a.id)?.rank ?? 999
+      const rb = aiMatchMap.get(b.id)?.rank ?? 999
+      return ra - rb
+    })
 
   return (
     <div className="min-h-screen bg-background">
@@ -355,6 +426,19 @@ export default function TrainersPage() {
             </div>
           )}
 
+          {/* AI Match banner */}
+          {aiMatches && (
+            <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm text-primary">
+                <Sparkles className="w-4 h-4 shrink-0" />
+                <span>Showing AI-ranked results for your goals. Top matches are highlighted.</span>
+              </div>
+              <button onClick={clearAiMatch} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-col lg:flex-row gap-8">
             <aside className="hidden lg:block w-72 flex-shrink-0">
               <div className="sticky top-24 bg-card border border-border rounded-xl p-6">
@@ -384,6 +468,94 @@ export default function TrainersPage() {
                     className="pl-10 bg-input border-border"
                   />
                 </div>
+
+                {/* Find My Match dialog */}
+                <Dialog open={matchModalOpen} onOpenChange={setMatchModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90">
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Find My Match
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-background border-border max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-foreground flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                        AI Trainer Matching
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                      <p className="text-sm text-muted-foreground">Tell us about your goals and we&apos;ll rank the best trainers for you.</p>
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-foreground text-sm mb-1 block">Primary Goal</Label>
+                          <Input
+                            placeholder="e.g. Lose weight, Build muscle, Run a 5K"
+                            value={goalForm.primary_goal}
+                            onChange={(e) => setGoalForm(f => ({ ...f, primary_goal: e.target.value }))}
+                            className="bg-input border-border"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-foreground text-sm mb-1 block">Experience Level</Label>
+                          <Input
+                            placeholder="e.g. Beginner, Intermediate, Advanced"
+                            value={goalForm.experience_level}
+                            onChange={(e) => setGoalForm(f => ({ ...f, experience_level: e.target.value }))}
+                            className="bg-input border-border"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-foreground text-sm mb-1 block">Preferred Training Style</Label>
+                          <Input
+                            placeholder="e.g. HIIT, Strength, Yoga, Outdoor"
+                            value={goalForm.preferred_training_style}
+                            onChange={(e) => setGoalForm(f => ({ ...f, preferred_training_style: e.target.value }))}
+                            className="bg-input border-border"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-foreground text-sm mb-1 block">Workouts per Week</Label>
+                          <Input
+                            placeholder="e.g. 3"
+                            type="number"
+                            min={1}
+                            max={7}
+                            value={goalForm.workout_days_per_week}
+                            onChange={(e) => setGoalForm(f => ({ ...f, workout_days_per_week: e.target.value }))}
+                            className="bg-input border-border"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-foreground text-sm mb-1 block">Injuries / Limitations <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                          <Input
+                            placeholder="e.g. Bad knee, Lower back pain"
+                            value={goalForm.injuries_limitations}
+                            onChange={(e) => setGoalForm(f => ({ ...f, injuries_limitations: e.target.value }))}
+                            className="bg-input border-border"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleFindMatch}
+                        disabled={aiMatchLoading || !goalForm.primary_goal.trim()}
+                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        {aiMatchLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Finding your matches...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Find My Best Trainers
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 
                 {mounted ? (
                   <Sheet>

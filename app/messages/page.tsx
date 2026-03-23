@@ -15,6 +15,7 @@ import {
   CheckCheck,
 } from "lucide-react"
 import { useEffect, useRef, useState, useCallback } from "react"
+import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { supabase } from "@/lib/supabaseClient"
@@ -132,9 +133,9 @@ function MessageBubble({
   )
 }
 
-export default function MessagesPage() {
   const router = useRouter()
   const { session, user, loading } = useAuth()
+  const { toast } = useToast()
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [selectedConversation, setSelectedConversation] = useState<ConversationSummary | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -163,7 +164,11 @@ export default function MessagesPage() {
     const { data: rows, error } = await getConversationMessages(user.id)
 
     if (error) {
-      console.error("Error fetching conversations:", error)
+      toast({
+        title: "Error loading conversations",
+        description: "Failed to load your conversations. Please try again.",
+        variant: "destructive",
+      })
       setLoadingConversations(false)
       return
     }
@@ -196,7 +201,7 @@ export default function MessagesPage() {
 
     setConversations(Array.from(partnerMap.values()))
     setLoadingConversations(false)
-  }, [user])
+  }, [user, toast])
 
   useEffect(() => {
     fetchConversations()
@@ -215,12 +220,16 @@ export default function MessagesPage() {
     const { data, error } = await getThreadMessages(user.id, partnerId)
 
     if (error) {
-      console.error("Error fetching messages:", error)
+      toast({
+        title: "Error loading messages",
+        description: "Failed to load messages for this conversation.",
+        variant: "destructive",
+      })
     } else {
       setMessages(data)
     }
     setLoadingMessages(false)
-  }, [user])
+  }, [user, toast])
 
   const handleSelectConversation = useCallback(async (conv: ConversationSummary) => {
     setSelectedConversation(conv)

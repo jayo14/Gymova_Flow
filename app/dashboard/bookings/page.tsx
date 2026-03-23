@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -127,6 +128,7 @@ function BookingCard({ booking }: { booking: DisplayBooking }) {
 
 export default function BookingsPage() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [upcomingBookings, setUpcomingBookings] = useState<DisplayBooking[]>([])
   const [pastBookings, setPastBookings] = useState<DisplayBooking[]>([])
   const [loading, setLoading] = useState(true)
@@ -143,6 +145,11 @@ export default function BookingsPage() {
 
       if (fetchError) {
         setError("Failed to load bookings. Please try again.")
+        toast({
+          title: "Error loading bookings",
+          description: "Failed to load bookings. Please try again.",
+          variant: "destructive",
+        })
         return
       }
 
@@ -158,7 +165,7 @@ export default function BookingsPage() {
           .map(mapToDisplay)
       )
     })
-  }, [user])
+  }, [user, toast])
 
   if (loading) {
     return (

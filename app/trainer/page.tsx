@@ -1,9 +1,5 @@
 "use client"
 
-import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import {
   Calendar,
   Clock,
   User,
@@ -20,7 +16,29 @@ import { getTrainerBookings } from "@/lib/supabase/bookings"
 import type { Booking } from "@/types/booking"
 
 export default function TrainerDashboardPage() {
-  const { user } = useAuth()
+  const { user, session, loading } = useAuth()
+  const [trainerChecked, setTrainerChecked] = useState(false)
+  const router = useRouter()
+  useEffect(() => {
+    if (loading) return
+    if (!session?.user) {
+      router.replace("/login")
+      return
+    }
+    getIsApprovedTrainer(session.user.id).then((isTrainer) => {
+      setTrainerChecked(true)
+      if (!isTrainer) {
+        router.replace("/dashboard")
+      }
+    })
+  }, [loading, session, router])
+  if (loading || !trainerChecked || !session) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <span className="text-muted-foreground">Loading trainer dashboard...</span>
+      </div>
+    )
+  }
   const displayName =
     (user?.user_metadata as { full_name?: string } | undefined)?.full_name ||
     user?.email?.split("@")[0] ||

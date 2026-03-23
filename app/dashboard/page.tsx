@@ -1,84 +1,9 @@
 "use client"
 
-import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Calendar, Clock, MapPin, Star, Search, Sparkles, TrendingUp, Target, Flame, Send, ArrowRight } from "lucide-react"
-import { useState, useEffect } from "react"
-import { useAuth } from "@/components/auth/AuthProvider"
-<<<<<<< HEAD
 import { getClientBookings } from "@/lib/supabase/bookings"
 import { getTrainers } from "@/lib/supabase/trainers"
 import type { BookingWithTrainer } from "@/types/booking"
 import type { TrainerListItem } from "@/types/trainer"
-=======
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
-
-const upcomingSessions = [
-  {
-    id: 1,
-    trainer: "Mike Thompson",
-    specialty: "Strength Training",
-    date: "Today",
-    time: "2:00 PM",
-    location: "Downtown Gym"
-  },
-  {
-    id: 2,
-    trainer: "Lisa Chen",
-    specialty: "HIIT & Cardio",
-    date: "Tomorrow",
-    time: "9:00 AM",
-    location: "FitZone Studio"
-  },
-  {
-    id: 3,
-    trainer: "James Wilson",
-    specialty: "Yoga & Flexibility",
-    date: "Mar 10",
-    time: "7:00 PM",
-    location: "Zen Fitness Center"
-  }
-]
-
-const recommendedTrainers = [
-  {
-    id: 1,
-    name: "Sarah Miller",
-    specialty: "Weight Loss",
-    rating: 4.9,
-    reviews: 124,
-    price: 75,
-    image: null
-  },
-  {
-    id: 2,
-    name: "David Park",
-    specialty: "Bodybuilding",
-    rating: 4.8,
-    reviews: 89,
-    price: 85,
-    image: null
-  },
-  {
-    id: 3,
-    name: "Emma Roberts",
-    specialty: "CrossFit",
-    rating: 4.9,
-    reviews: 156,
-    price: 80,
-    image: null
-  }
-]
-
-const progressStats = [
-  { label: "Workouts This Week", value: "5", icon: Flame, change: "+2 from last week" },
-  { label: "Sessions Completed", value: "24", icon: Target, change: "This month" },
-  { label: "Current Streak", value: "12 days", icon: TrendingUp, change: "Personal best!" }
-]
->>>>>>> b75c4a9 (Implement session management in DashboardPage with redirection to login)
 
 const aiSuggestions = [
   "Create a beginner workout routine",

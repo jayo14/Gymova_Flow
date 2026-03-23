@@ -29,7 +29,6 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [accountType, setAccountType] = useState<"client" | "trainer">("client")
   const [step, setStep] = useState(1)
-  const [trainerRequestSubmitted, setTrainerRequestSubmitted] = useState(false)
   const isSubmittingRef = useRef(false)
 
   const [firstName, setFirstName] = useState("")
@@ -44,11 +43,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!loading && session && !isSubmittingRef.current) {
-      router.replace("/dashboard")
-    }
-  }, [loading, session, router])
+  // Removed auto-redirect to dashboard on session to force email verification
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -125,13 +120,11 @@ export default function SignupPage() {
         if (!res.ok) {
           const json = await res.json().catch(() => ({}))
           console.error("Trainer signup API error:", json)
-          // Don't block the UX — the auth user exists; admin can still see them.
-          // We show the confirmation screen anyway so the user knows to wait.
         }
 
         // Sign out the trainer so they can't access any dashboard until approved.
         await supabase.auth.signOut()
-        setTrainerRequestSubmitted(true)
+        router.replace(`/verify-email?email=${encodeURIComponent(email)}&type=trainer`)
       } else if (userId) {
         // Client account — upsert profile directly (client is already signed in).
         if (data.session) {
@@ -141,10 +134,8 @@ export default function SignupPage() {
           if (profileError) {
             console.error("Error creating client profile", profileError)
           }
-          router.replace("/dashboard")
-        } else {
-          setSuccess("Account created! Check your email to confirm your address, then sign in.")
         }
+        router.replace(`/verify-email?email=${encodeURIComponent(email)}&type=client`)
       }
     } catch (err) {
       console.error("Unexpected error during signup", err)
@@ -163,48 +154,7 @@ export default function SignupPage() {
     )
   }
 
-  if (trainerRequestSubmitted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-8">
-        <div className="max-w-md w-full text-center space-y-6">
-          <div className="flex justify-center">
-            <div className="relative">
-              <div className="absolute -inset-4 bg-primary/20 rounded-full blur-2xl" />
-              <div className="relative h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center border border-primary/30">
-                <CheckCircle2 className="h-12 w-12 text-primary" />
-              </div>
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Application Submitted</h1>
-          <p className="text-muted-foreground leading-relaxed">
-            Thank you for applying to become a trainer on GymovaFlow! Our team will review your application and get back
-            to you within 2-3 business days.
-          </p>
-          <div className="bg-secondary/50 rounded-xl p-4 border border-border">
-            <div className="flex items-center gap-3 text-left">
-              <Clock className="h-5 w-5 text-primary shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-foreground">What happens next?</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Your application is under review. You&apos;ll be notified when it&apos;s accepted. Once approved, you can log in to access the trainer dashboard.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-3">
-            <Link href="/">
-              <Button className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90">
-                Back to Home
-              </Button>
-            </Link>
-            <p className="text-xs text-muted-foreground">
-              You cannot log in until your application has been approved by an admin.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Removed trainerRequestSubmitted UI. Trainer is now redirected to /verify-email after signup.
 
   return (
     <div className="min-h-screen bg-background flex">

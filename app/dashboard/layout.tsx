@@ -1,9 +1,13 @@
 "use client"
 
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabaseClient"
+import { useAuth } from "@/components/auth/AuthProvider"
+import { getTrainerStatus } from "@/lib/trainerAuth"
+import { DashboardSidebar, DashboardSidebarLink } from "@/components/dashboard/Sidebar"
+import { DashboardTopNav } from "@/components/dashboard/TopNav"
+
 import {
   LayoutDashboard,
   Search,
@@ -11,19 +15,10 @@ import {
   MessageCircle,
   Sparkles,
   User,
-  Menu,
-  X,
-  Dumbbell,
-  Bell,
-  ChevronDown,
   Briefcase,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabaseClient"
-import { useAuth } from "@/components/auth/AuthProvider"
-import { getIsApprovedTrainer, getTrainerStatus } from "@/lib/trainerAuth"
 
-const baseSidebarLinks = [
+const baseSidebarLinks: DashboardSidebarLink[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/trainers", label: "Find Trainers", icon: Search },
   { href: "/dashboard/bookings", label: "Bookings", icon: Calendar },
@@ -31,7 +26,7 @@ const baseSidebarLinks = [
   { href: "/ai-coach", label: "AI Coach", icon: Sparkles },
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ]
-const trainerDashboardLink = { href: "/trainer", label: "Trainer dashboard", icon: Briefcase }
+const trainerDashboardLink: DashboardSidebarLink = { href: "/trainer", label: "Trainer dashboard", icon: Briefcase }
 
 function Sidebar({
   isOpen,
@@ -224,17 +219,22 @@ export default function DashboardLayout({
     )
   }
 
+  const sidebarLinks = isTrainer
+    ? [baseSidebarLinks[0], trainerDashboardLink, ...baseSidebarLinks.slice(1)]
+    : baseSidebarLinks
+
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar
+      <DashboardSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         userName={(user?.user_metadata as { full_name?: string })?.full_name || user?.email || null}
         userEmail={user?.email ?? null}
         onLogout={handleLogout}
-        isTrainer={isTrainer}
+        links={sidebarLinks}
+        title="GymovaFlow"
       />
-      <TopNav onMenuClick={() => setSidebarOpen(true)} onLogout={handleLogout} />
+      <DashboardTopNav onMenuClick={() => setSidebarOpen(true)} onLogout={handleLogout} title="Dashboard" />
       <main className="lg:pl-64 pt-16">
         <div className="p-4 lg:p-8">
           {children}

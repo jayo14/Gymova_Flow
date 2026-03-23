@@ -1,9 +1,13 @@
 "use client"
 
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabaseClient"
+import { useAuth } from "@/components/auth/AuthProvider"
+import { getIsApprovedTrainer } from "@/lib/trainerAuth"
+import { DashboardSidebar, DashboardSidebarLink } from "@/components/dashboard/Sidebar"
+import { DashboardTopNav } from "@/components/dashboard/TopNav"
+
 import {
   LayoutDashboard,
   Calendar,
@@ -11,17 +15,9 @@ import {
   MessageCircle,
   User,
   MapPin,
-  Menu,
-  X,
-  Dumbbell,
-  LogOut,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabaseClient"
-import { useAuth } from "@/components/auth/AuthProvider"
-import { getIsApprovedTrainer } from "@/lib/trainerAuth"
 
-const sidebarLinks = [
+const sidebarLinks: DashboardSidebarLink[] = [
   { href: "/trainer", label: "Dashboard", icon: LayoutDashboard },
   { href: "/trainer/availability", label: "My availability", icon: Clock },
   { href: "/trainer/sessions", label: "Sessions", icon: Calendar },
@@ -178,14 +174,17 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar
+      <DashboardSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         userName={(user?.user_metadata as { full_name?: string })?.full_name || user?.email || null}
         userEmail={user?.email ?? null}
         onLogout={handleLogout}
+        links={sidebarLinks}
+        title="Trainer"
+        signedInAs="trainer"
       />
-      <TopNav onMenuClick={() => setSidebarOpen(true)} onLogout={handleLogout} />
+      <DashboardTopNav onMenuClick={() => setSidebarOpen(true)} onLogout={handleLogout} title="Trainer dashboard" />
       <main className="lg:pl-64 pt-16">
         <div className="p-4 lg:p-8">{children}</div>
       </main>

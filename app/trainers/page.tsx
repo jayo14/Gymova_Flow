@@ -34,6 +34,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { getTrainers } from "@/lib/supabase/trainers"
+import { getClientGoals, upsertClientGoals } from "@/lib/supabase/clientGoals"
+import { supabase } from "@/lib/supabaseClient"
 import type { TrainerListItem } from "@/types/trainer"
 
 const specializations = [
@@ -221,6 +223,7 @@ export default function TrainersPage() {
   // AI match state
   const [aiMatches, setAiMatches] = useState<AiMatch[] | null>(null)
   const [aiMatchLoading, setAiMatchLoading] = useState(false)
+  const [aiMatchError, setAiMatchError] = useState<string | null>(null)
   const [matchModalOpen, setMatchModalOpen] = useState(false)
   const [goalForm, setGoalForm] = useState({
     primary_goal: "",
@@ -235,25 +238,81 @@ export default function TrainersPage() {
   }, [])
 
   useEffect(() => {
-    getTrainers().then(({ data, error }) => {
+    let mounted = true
+
+    const loadData = async () => {
+      const [{ data, error }, authResult] = await Promise.all([
+        getTrainers(),
+        supabase.auth.getUser(),
+      ])
+
+      if (!mounted) return
+
       if (error) {
         console.error("Error loading trainers from Supabase:", error)
         setLoadError("Could not load trainers right now. Please try again shortly.")
-        return
+      } else {
+        setTrainerList(data)
       }
-      setTrainerList(data)
-    })
+
+      const userId = authResult.data.user?.id
+      if (!userId) return
+
+      const { data: savedGoals, error: goalsError } = await getClientGoals(userId)
+      if (!mounted || goalsError || !savedGoals) return
+
+      setGoalForm({
+        primary_goal: savedGoals.primary_goal ?? "",
+        experience_level: savedGoals.experience_level ?? "",
+        preferred_training_style: savedGoals.preferred_training_style ?? "",
+        workout_days_per_week: savedGoals.workout_days_per_week?.toString() ?? "",
+        injuries_limitations: savedGoals.injuries_limitations ?? "",
+      })
+    }
+
+    void loadData()
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
   const handleFindMatch = async () => {
+    setAiMatchError(null)
     setAiMatchLoading(true)
+
     try {
+      const { data: latestTrainers, error: trainerError } = await getTrainers()
+      if (trainerError) {
+        setAiMatchError("Could not refresh trainers for matching. Try again.")
+        return
+      }
+
+      setTrainerList(latestTrainers)
+
+      const { data: authResult } = await supabase.auth.getUser()
+      const clientId = authResult.user?.id
+      const workoutDays = Number(goalForm.workout_days_per_week)
+      const normalizedGoals = {
+        ...goalForm,
+        workout_days_per_week: Number.isFinite(workoutDays) && workoutDays >= 1 && workoutDays <= 7
+          ? workoutDays
+          : null,
+      }
+
+      if (clientId) {
+        const { error: saveError } = await upsertClientGoals(clientId, normalizedGoals)
+        if (saveError) {
+          console.warn("Could not save client goals:", saveError)
+        }
+      }
+
       const res = await fetch("/api/match-trainer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          goals: goalForm,
-          trainers: trainerList.map((t) => ({
+          goals: normalizedGoals,
+          trainers: latestTrainers.map((t) => ({
             id: t.id,
             name: t.name,
             specialty: t.specialty,
@@ -263,12 +322,17 @@ export default function TrainersPage() {
           })),
         }),
       })
+
       const { matches } = await res.json()
       if (Array.isArray(matches) && matches.length > 0) {
         setAiMatches(matches)
+      } else {
+        setAiMatches(null)
+        setAiMatchError("No clear matches yet. Try adding more goal details.")
       }
     } catch (err) {
       console.error("match-trainer error:", err)
+      setAiMatchError("AI matching failed. Please try again in a moment.")
     } finally {
       setAiMatchLoading(false)
       setMatchModalOpen(false)
@@ -332,6 +396,12 @@ export default function TrainersPage() {
           {loadError && (
             <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-600">
               {loadError}
+            </div>
+          )}
+
+          {aiMatchError && (
+            <div className="mb-6 rounded-lg border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-600">
+              {aiMatchError}
             </div>
           )}
 
@@ -447,7 +517,12 @@ export default function TrainersPage() {
                       </div>
                       <Button
                         onClick={handleFindMatch}
-                        disabled={aiMatchLoading || !goalForm.primary_goal.trim()}
+                        disabled={
+                          aiMatchLoading ||
+                          !goalForm.primary_goal.trim() ||
+                          !goalForm.experience_level.trim() ||
+                          !goalForm.preferred_training_style.trim()
+                        }
                         className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                       >
                         {aiMatchLoading ? (

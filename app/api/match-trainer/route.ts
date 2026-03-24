@@ -26,9 +26,9 @@ ${JSON.stringify(goals, null, 2)}
 Available trainers (JSON):
 ${JSON.stringify(trainers, null, 2)}
 
-Return ONLY a valid JSON array of trainer IDs ranked by match quality, best first.
-Include a short reason (max 12 words) for each match.
-Format exactly like this (no markdown, no extra text):
+Return ONLY a JSON array of trainer IDs ranked by match quality, best first.
+Include a short reason (max 12 words) for each.
+Format:
 [{"id": 1, "reason": "Specializes in weight loss and HIIT"}, ...]`
 
   try {
@@ -52,9 +52,22 @@ Format exactly like this (no markdown, no extra text):
     const data = await res.json()
     const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]"
     const clean = text.replace(/```json|```/g, "").trim()
+
     try {
-      const matches = JSON.parse(clean)
-      return NextResponse.json({ matches: Array.isArray(matches) ? matches : [] })
+      const parsed = JSON.parse(clean)
+      const matches = Array.isArray(parsed)
+        ? parsed
+            .map((item: unknown) => {
+              const row = item as { id?: unknown; reason?: unknown }
+              const id = Number(row.id)
+              const reason = typeof row.reason === "string" ? row.reason.trim() : ""
+              if (!Number.isInteger(id) || id <= 0 || !reason) return null
+              return { id, reason: reason.slice(0, 120) }
+            })
+            .filter((row): row is { id: number; reason: string } => row !== null)
+        : []
+
+      return NextResponse.json({ matches })
     } catch {
       return NextResponse.json({ matches: [] })
     }

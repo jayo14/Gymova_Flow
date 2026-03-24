@@ -157,6 +157,10 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const selectedConversationRef = useRef<ConversationSummary | null>(null)
 
+  const appendUniqueMessage = useCallback((message: Message) => {
+    setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]))
+  }, [])
+
   useEffect(() => {
     selectedConversationRef.current = selectedConversation
   }, [selectedConversation])
@@ -276,22 +280,28 @@ export default function MessagesPage() {
     if (!user) return
 
     const channel = supabase
-      .channel(`messages-realtime-${user.id}`)
+      .channel("messages")
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `receiver_id=eq.${user.id}`,
         },
         (payload) => {
-          const incoming = payload.new as Message
-          const active = selectedConversationRef.current
+          const msg = payload.new as Message
+          const activePartnerId = selectedConversationRef.current?.partnerId
 
-          if (active && incoming.sender_id === active.partnerId) {
-            setMessages((prev) => [...prev, incoming])
-            void markAsRead(active.partnerId)
+          if (!activePartnerId) {
+            void fetchConversations()
+            return
+          }
+
+          if (msg.sender_id === activePartnerId || msg.receiver_id === activePartnerId) {
+            appendUniqueMessage(msg)
+            if (msg.sender_id === activePartnerId) {
+              void markAsRead(activePartnerId)
+            }
           }
 
           void fetchConversations()
@@ -302,7 +312,7 @@ export default function MessagesPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchConversations, markAsRead, user])
+  }, [appendUniqueMessage, fetchConversations, markAsRead, user])
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !selectedConversation) return
@@ -325,7 +335,7 @@ export default function MessagesPage() {
       return
     }
 
-    if (data) setMessages((prev) => [...prev, data])
+    if (data) appendUniqueMessage(data)
     void fetchConversations()
   }
 

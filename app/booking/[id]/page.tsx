@@ -20,10 +20,10 @@ import { useAuth } from "@/components/auth/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { getTrainerAvailability } from "@/lib/supabase/availability"
 import { createBooking } from "@/lib/supabase/bookings"
+import { supabase } from "@/lib/supabaseClient"
 import { getTrainerById } from "@/lib/supabase/trainers"
-import type { Trainer, TrainerListItem } from "@/types/trainer"
+import type { TrainerListItem } from "@/types/trainer"
 
 const MONTH_NAMES = [
   "January",
@@ -42,15 +42,12 @@ const MONTH_NAMES = [
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-const JS_DAY_TO_AVAILABILITY_DAY = [
-  "sunday",
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-] as const
+type TrainerAvailability = {
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_active: boolean
+}
 
 function generateCalendarDays(year: number, month: number): Array<number | null> {
   const firstDay = new Date(year, month, 1)
@@ -125,25 +122,30 @@ function toDisplayTime(raw: string): string {
   return `${hour12}:${minute} ${ampm}`
 }
 
-function getAvailableDatesFromWeeklySchedule(
-  availability: Record<string, string[]>,
-  daysAhead = 60
+function formatTime(time: string): string {
+  const [h, m] = time.split(":")
+  const hour = parseInt(h, 10)
+  const ampm = hour >= 12 ? "PM" : "AM"
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12
+  return `${hour12}:${m} ${ampm}`
+}
+
+function getAvailableDatesFromSchedule(
+  availability: TrainerAvailability[],
+  daysAhead = 30
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {}
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
 
-  for (let offset = 0; offset <= daysAhead; offset++) {
-    const date = new Date(today)
-    date.setDate(today.getDate() + offset)
-
-    const dayKey = JS_DAY_TO_AVAILABILITY_DAY[date.getDay()]
-    const slots = availability[dayKey] ?? []
+  for (let i = 1; i <= daysAhead; i++) {
+    const d = new Date(today)
+    d.setDate(today.getDate() + i)
+    const dow = d.getDay()
+    const slots = availability.filter((a) => a.day_of_week === dow && a.is_active)
     if (slots.length === 0) continue
 
-    const dateKey = formatLocalDateKey(date)
-    const uniqueDisplaySlots = Array.from(new Set(slots.map((slot) => toDisplayTime(slot))))
-    result[dateKey] = uniqueDisplaySlots
+    const key = formatLocalDateKey(d)
+    result[key] = slots.map((s) => formatTime(s.start_time))
   }
 
   return result
@@ -158,11 +160,10 @@ export default function BookingPage() {
   const trainerId = params.id
 
   const [trainer, setTrainer] = useState<TrainerListItem | null>(null)
-  const [trainerOwnerUserId, setTrainerOwnerUserId] = useState<string | null>(null)
   const [trainerLoading, setTrainerLoading] = useState(true)
   const [trainerError, setTrainerError] = useState<string | null>(null)
 
-  const [availability, setAvailability] = useState<Record<string, string[]>>({})
+  const [availability, setAvailability] = useState<TrainerAvailability[]>([])
   const [availabilityLoading, setAvailabilityLoading] = useState(true)
 
   const today = new Date()
@@ -194,7 +195,6 @@ export default function BookingPage() {
         setTrainer(null)
       } else {
         setTrainer(data)
-        setTrainerOwnerUserId((data as Trainer).user_id)
       }
 
       setTrainerLoading(false)
@@ -211,16 +211,21 @@ export default function BookingPage() {
     let cancelled = false
 
     async function loadAvailability() {
-      if (!trainerOwnerUserId) {
-        setAvailability({})
+      const numericTrainerId = Number(trainerId)
+      if (Number.isNaN(numericTrainerId)) {
+        setAvailability([])
         setAvailabilityLoading(false)
         return
       }
 
       setAvailabilityLoading(true)
-      const { data } = await getTrainerAvailability(trainerOwnerUserId)
+      const { data } = await supabase
+        .from("availability")
+        .select("day_of_week, start_time, end_time, is_active")
+        .eq("trainer_id", numericTrainerId)
+
       if (!cancelled) {
-        setAvailability(data)
+        setAvailability((data ?? []) as TrainerAvailability[])
         setAvailabilityLoading(false)
       }
     }
@@ -230,7 +235,7 @@ export default function BookingPage() {
     return () => {
       cancelled = true
     }
-  }, [trainerOwnerUserId])
+  }, [trainerId])
 
   const days = useMemo(
     () => generateCalendarDays(currentYear, currentMonth),
@@ -238,7 +243,7 @@ export default function BookingPage() {
   )
 
   const availableSlots = useMemo(
-    () => getAvailableDatesFromWeeklySchedule(availability),
+    () => getAvailableDatesFromSchedule(availability),
     [availability]
   )
 

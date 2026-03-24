@@ -2,90 +2,168 @@
 
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  CreditCard,
+import { useEffect, useMemo, useState } from "react"
+import {
+  ArrowLeft,
+  Calendar,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  CreditCard,
+  Loader2,
+  MapPin,
   Star,
-  Loader2
 } from "lucide-react"
-import { useState, useEffect } from "react"
+
+import { useAuth } from "@/components/auth/AuthProvider"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
+import { getTrainerAvailability } from "@/lib/supabase/availability"
 import { createBooking } from "@/lib/supabase/bookings"
 import { getTrainerById } from "@/lib/supabase/trainers"
-import { useAuth } from "@/components/auth/AuthProvider"
-import { getTrainerById } from "@/lib/supabase/trainers"
-import { supabase } from "@/lib/supabaseClient"
 import type { TrainerListItem } from "@/types/trainer"
 
-function generateCalendarDays(year: number, month: number) {
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+const JS_DAY_TO_AVAILABILITY_DAY = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const
+
+function generateCalendarDays(year: number, month: number): Array<number | null> {
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
   const daysInMonth = lastDay.getDate()
   const startingDay = firstDay.getDay()
-  
-  const days = []
-  
-  for (let i = 0; i < startingDay; i++) {
-    days.push(null)
-  }
-  
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push(i)
-  }
-  
+
+  const days: Array<number | null> = []
+  for (let i = 0; i < startingDay; i++) days.push(null)
+  for (let i = 1; i <= daysInMonth; i++) days.push(i)
   return days
 }
 
-function parseTimeTo24h(timeStr: string): string {
-  const [time, period] = timeStr.split(" ")
-  const [hours, minutes] = time.split(":")
-  let h = parseInt(hours)
-  if (period === "PM" && h !== 12) h += 12
-  if (period === "AM" && h === 12) h = 0
-  return `${String(h).padStart(2, "0")}:${minutes}:00`
+function formatLocalDateKey(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
 }
 
-function addOneHour(timeStr: string): string {
-  const parsed = parseTimeTo24h(timeStr)
-  const [h, m, s] = parsed.split(":").map(Number)
+function formatDateKey(year: number, month: number, day: number): string {
+  const monthStr = String(month + 1).padStart(2, "0")
+  const dayStr = String(day).padStart(2, "0")
+  return `${year}-${monthStr}-${dayStr}`
+}
+
+function normalizeToDbTime(raw: string): string | null {
+  const value = raw.trim()
+  if (!value) return null
+
+  if (value.includes("AM") || value.includes("PM")) {
+    const [time, period] = value.split(" ")
+    const [hours, minutes] = time.split(":")
+    const parsedHours = parseInt(hours, 10)
+    if (Number.isNaN(parsedHours) || !minutes) return null
+
+    let h = parsedHours
+    if (period === "PM" && h !== 12) h += 12
+    if (period === "AM" && h === 12) h = 0
+    return `${String(h).padStart(2, "0")}:${minutes}:00`
+  }
+
+  const pieces = value.split(":")
+  if (pieces.length < 2) return null
+
+  const hours = parseInt(pieces[0], 10)
+  const minutes = parseInt(pieces[1], 10)
+  const seconds = pieces.length >= 3 ? parseInt(pieces[2], 10) : 0
+
+  if ([hours, minutes, seconds].some(Number.isNaN)) return null
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
+
+function addOneHour(time: string): string {
+  const [h, m, s] = time.split(":").map((piece) => parseInt(piece, 10))
   const newH = (h + 1) % 24
   return `${String(newH).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
 }
 
-  const params = useParams()
+function toDisplayTime(raw: string): string {
+  if (raw.includes("AM") || raw.includes("PM")) return raw
+
+  const pieces = raw.split(":")
+  if (pieces.length < 2) return raw
+
+  const hour = parseInt(pieces[0], 10)
+  const minute = pieces[1]
+  if (Number.isNaN(hour)) return raw
+
+  const ampm = hour >= 12 ? "PM" : "AM"
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12
+  return `${hour12}:${minute} ${ampm}`
+}
+
+function getAvailableDatesFromWeeklySchedule(
+  availability: Record<string, string[]>,
+  daysAhead = 60
+): Record<string, string[]> {
+  const result: Record<string, string[]> = {}
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  for (let offset = 0; offset <= daysAhead; offset++) {
+    const date = new Date(today)
+    date.setDate(today.getDate() + offset)
+
+    const dayKey = JS_DAY_TO_AVAILABILITY_DAY[date.getDay()]
+    const slots = availability[dayKey] ?? []
+    if (slots.length === 0) continue
+
+    const dateKey = formatLocalDateKey(date)
+    const uniqueDisplaySlots = Array.from(new Set(slots.map((slot) => toDisplayTime(slot))))
+    result[dateKey] = uniqueDisplaySlots
+  }
+
+  return result
+}
+
+export default function BookingPage() {
+  const params = useParams<{ id: string }>()
   const router = useRouter()
   const { user } = useAuth()
   const { toast } = useToast()
 
-  const trainerId = params.id as string
+  const trainerId = params.id
+
   const [trainer, setTrainer] = useState<TrainerListItem | null>(null)
-  const [availability, setAvailability] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [trainerLoading, setTrainerLoading] = useState(true)
+  const [trainerError, setTrainerError] = useState<string | null>(null)
 
-  useEffect(() => {
-    setLoading(true)
-    getTrainerById(trainerId).then(({ data }) => {
-      if (data) setTrainer(data)
-      setLoading(false)
-    })
-    // Fetch DB-driven availability: [{ day_of_week, start_time, end_time, is_active }]
-    supabase
-      .from("availability")
-      .select("day_of_week, start_time, end_time, is_active")
-      .eq("trainer_id", trainerId)
-      .then(({ data }) => {
-        setAvailability(data || [])
-      })
-  }, [trainerId])
+  const [availability, setAvailability] = useState<Record<string, string[]>>({})
+  const [availabilityLoading, setAvailabilityLoading] = useState(true)
 
-  // Default to current month/year
   const today = new Date()
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
@@ -96,60 +174,85 @@ function addOneHour(timeStr: string): string {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [bookingError, setBookingError] = useState<string | null>(null)
 
-  const days = generateCalendarDays(currentYear, currentMonth)
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  useEffect(() => {
+    let cancelled = false
 
-  const formatDateKey = (day: number) => {
-    const month = String(currentMonth + 1).padStart(2, "0")
-    const dayStr = String(day).padStart(2, "0")
-    return `${currentYear}-${month}-${dayStr}`
-  }
+    async function loadTrainer() {
+      setTrainerLoading(true)
+      setTrainerError(null)
 
-  // Generate available slots for the next 30 days based on DB-driven weekly schedule
-  function formatTime(time: string) {
-    // Assumes time is in HH:MM:SS, returns e.g. "9:00 AM"
-    const [h, m] = time.split(":")
-    const hour = parseInt(h)
-    const ampm = hour >= 12 ? "PM" : "AM"
-    const hour12 = hour % 12 === 0 ? 12 : hour % 12
-    return `${hour12}:${m} ${ampm}`
-  }
+      const { data, error } = await getTrainerById(trainerId)
 
-  function getAvailableDatesFromSchedule(
-    availability: any[],
-    daysAhead = 30
-  ): Record<string, string[]> {
-    const result: Record<string, string[]> = {}
-    const today = new Date()
-    for (let i = 1; i <= daysAhead; i++) {
-      const d = new Date(today)
-      d.setDate(today.getDate() + i)
-      const dow = d.getDay() // 0 (Sun) - 6 (Sat)
-      const slots = availability.filter(a => a.day_of_week === dow && a.is_active)
-      if (slots.length > 0) {
-        const key = d.toISOString().split("T")[0]
-        result[key] = slots.map(s => formatTime(s.start_time))
+      if (cancelled) return
+
+      if (error) {
+        setTrainerError(error)
+        setTrainer(null)
+      } else if (!data) {
+        setTrainerError("Trainer not found.")
+        setTrainer(null)
+      } else {
+        setTrainer(data)
+      }
+
+      setTrainerLoading(false)
+    }
+
+    void loadTrainer()
+
+    return () => {
+      cancelled = true
+    }
+  }, [trainerId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAvailability() {
+      if (!trainer?.user_id) {
+        setAvailability({})
+        setAvailabilityLoading(false)
+        return
+      }
+
+      setAvailabilityLoading(true)
+      const { data } = await getTrainerAvailability(trainer.user_id)
+      if (!cancelled) {
+        setAvailability(data)
+        setAvailabilityLoading(false)
       }
     }
-    return result
-  }
 
-  const availableSlots = getAvailableDatesFromSchedule(availability)
+    void loadAvailability()
+
+    return () => {
+      cancelled = true
+    }
+  }, [trainer])
+
+  const days = useMemo(
+    () => generateCalendarDays(currentYear, currentMonth),
+    [currentMonth, currentYear]
+  )
+
+  const availableSlots = useMemo(
+    () => getAvailableDatesFromWeeklySchedule(availability),
+    [availability]
+  )
 
   const isDateAvailable = (day: number | null) => {
     if (!day) return false
-    const dateKey = formatDateKey(day)
-    return availableSlots[dateKey] && availableSlots[dateKey].length > 0
+    const dateKey = formatDateKey(currentYear, currentMonth, day)
+    return (availableSlots[dateKey] ?? []).length > 0
   }
 
   const getAvailableSlotsForDate = () => {
     if (!selectedDate) return []
-    return availableSlots[selectedDate] || []
+    return availableSlots[selectedDate] ?? []
   }
 
   const handleDateSelect = (day: number) => {
-    const dateKey = formatDateKey(day)
+    const dateKey = formatDateKey(currentYear, currentMonth, day)
     setSelectedDate(dateKey)
     setSelectedTime(null)
   }
@@ -157,26 +260,31 @@ function addOneHour(timeStr: string): string {
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11)
-      setCurrentYear(currentYear - 1)
-    } else {
-      setCurrentMonth(currentMonth - 1)
+      setCurrentYear((prev) => prev - 1)
+      return
     }
+    setCurrentMonth((prev) => prev - 1)
   }
 
   const handleNextMonth = () => {
     if (currentMonth === 11) {
       setCurrentMonth(0)
-      setCurrentYear(currentYear + 1)
-    } else {
-      setCurrentMonth(currentMonth + 1)
+      setCurrentYear((prev) => prev + 1)
+      return
     }
+    setCurrentMonth((prev) => prev + 1)
   }
 
   const formatSelectedDate = () => {
     if (!selectedDate) return ""
-    const [year, month, day] = selectedDate.split("-")
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-    return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+    const [year, month, day] = selectedDate.split("-").map((value) => parseInt(value, 10))
+    const selected = new Date(year, month - 1, day)
+    return selected.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })
   }
 
   const handleConfirmBooking = async () => {
@@ -193,26 +301,30 @@ function addOneHour(timeStr: string): string {
       return
     }
 
+    const startTime = normalizeToDbTime(selectedTime)
+    if (!startTime) {
+      setBookingError("Invalid time slot selected. Please choose another time.")
+      return
+    }
+
+    const numericTrainerId =
+      typeof trainer.id === "string" ? parseInt(trainer.id, 10) : trainer.id
+
+    if (Number.isNaN(numericTrainerId)) {
+      setBookingError("Invalid trainer ID. Please try again.")
+      return
+    }
+
     setIsSubmitting(true)
     setBookingError(null)
 
-    const startTime = parseTimeTo24h(selectedTime)
-    const endTime = addOneHour(selectedTime)
-
-    const trainerId = typeof trainer.id === "string" ? parseInt(trainer.id, 10) : trainer.id
-
-    if (!trainer) {
-      setBookingError("Trainer not loaded. Please try again.")
-      setIsSubmitting(false)
-      return
-    }
-    const trainerIdNum = typeof trainer.id === 'string' ? parseInt(trainer.id, 10) : trainer.id
     const { error } = await createBooking({
       client_id: user.id,
-      trainer_id: typeof trainer?.id === 'string' ? parseInt(trainer.id, 10) : trainer?.id,
+      trainer_id:
+        typeof trainer.id === "string" ? parseInt(trainer.id, 10) : trainer.id,
       booking_date: selectedDate,
       start_time: startTime,
-      end_time: endTime,
+      end_time: addOneHour(startTime),
       status: "pending",
       goal_note: goalNote.trim() || null,
     })
@@ -220,22 +332,32 @@ function addOneHour(timeStr: string): string {
     setIsSubmitting(false)
 
     if (error) {
-      setBookingError(error || "Failed to create booking. Please try again.")
+      setBookingError(error)
       return
     }
 
     toast({
       title: "Booking request sent to trainer",
-      description: `Your session with ${trainer?.name ?? "the trainer"} on ${formatSelectedDate()} at ${selectedTime} is pending confirmation.`,
+      description: `Your session with ${trainer.name} on ${formatSelectedDate()} at ${selectedTime} is pending confirmation.`,
     })
 
     router.push("/dashboard/bookings")
   }
 
-  if (!trainer) {
+  if (trainerLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <span className="text-muted-foreground">Loading trainer...</span>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (trainerError || !trainer) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {trainerError ?? "Trainer not found."}
+        </div>
       </div>
     )
   }
@@ -244,13 +366,14 @@ function addOneHour(timeStr: string): string {
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href={trainer ? `/trainers/${trainer.id}` : "/trainers"} className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
+          <Link
+            href={`/trainers/${trainer.id}`}
+            className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+          >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Back to Profile</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Step {step} of 2</span>
-          </div>
+          <span className="text-muted-foreground">Step {step} of 2</span>
         </div>
       </header>
 
@@ -258,21 +381,8 @@ function addOneHour(timeStr: string): string {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-2xl font-bold text-foreground mb-8">Book a Session</h1>
 
-          {trainerLoading && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          )}
-
-          {trainerError && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {trainerError}
-            </div>
-          )}
-
-          {!trainerLoading && !trainerError && trainer && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
               {step === 1 && (
                 <>
                   <Card className="bg-card border-border">
@@ -283,7 +393,7 @@ function addOneHour(timeStr: string): string {
                           <ChevronLeft className="w-4 h-4" />
                         </Button>
                         <span className="text-sm font-medium text-card-foreground min-w-[120px] text-center">
-                          {monthNames[currentMonth]} {currentYear}
+                          {MONTH_NAMES[currentMonth]} {currentYear}
                         </span>
                         <Button variant="ghost" size="icon" onClick={handleNextMonth}>
                           <ChevronRight className="w-4 h-4" />
@@ -292,33 +402,33 @@ function addOneHour(timeStr: string): string {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-7 gap-1 mb-2">
-                        {dayNames.map((day) => (
-                          <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-                            {day}
+                        {DAY_NAMES.map((dayName) => (
+                          <div key={dayName} className="text-center text-xs font-medium text-muted-foreground py-2">
+                            {dayName}
                           </div>
                         ))}
                       </div>
+
                       <div className="grid grid-cols-7 gap-1">
                         {days.map((day, index) => {
-                          const dateKey = day ? formatDateKey(day) : ""
+                          const dateKey = day ? formatDateKey(currentYear, currentMonth, day) : ""
                           const isAvailable = isDateAvailable(day)
                           const isSelected = selectedDate === dateKey
-                          
+
                           return (
                             <button
-                              key={index}
+                              key={`${dateKey}-${index}`}
                               disabled={!isAvailable}
                               onClick={() => day && isAvailable && handleDateSelect(day)}
-                              className={`
-                                aspect-square rounded-lg text-sm font-medium transition-colors
-                                ${!day ? "invisible" : ""}
-                                ${isSelected 
-                                  ? "bg-primary text-primary-foreground" 
-                                  : isAvailable 
-                                    ? "bg-secondary hover:bg-primary/20 text-card-foreground" 
-                                    : "text-muted-foreground/50 cursor-not-allowed"
-                                }
-                              `}
+                              className={[
+                                "aspect-square rounded-lg text-sm font-medium transition-colors",
+                                !day ? "invisible" : "",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : isAvailable
+                                    ? "bg-secondary hover:bg-primary/20 text-card-foreground"
+                                    : "text-muted-foreground/50 cursor-not-allowed",
+                              ].join(" ")}
                             >
                               {day}
                             </button>
@@ -340,13 +450,12 @@ function addOneHour(timeStr: string): string {
                             <button
                               key={time}
                               onClick={() => setSelectedTime(time)}
-                              className={`
-                                px-4 py-3 rounded-lg text-sm font-medium transition-colors
-                                ${selectedTime === time
+                              className={[
+                                "px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                                selectedTime === time
                                   ? "bg-primary text-primary-foreground"
-                                  : "bg-secondary hover:bg-primary/20 text-card-foreground"
-                                }
-                              `}
+                                  : "bg-secondary hover:bg-primary/20 text-card-foreground",
+                              ].join(" ")}
                             >
                               {time}
                             </button>
@@ -359,7 +468,7 @@ function addOneHour(timeStr: string): string {
                   <Button
                     className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                     size="lg"
-                    disabled={!selectedDate || !selectedTime}
+                    disabled={!selectedDate || !selectedTime || availabilityLoading}
                     onClick={() => setStep(2)}
                   >
                     Continue to Review
@@ -476,7 +585,9 @@ function addOneHour(timeStr: string): string {
                     <div className="space-y-2 py-4 border-y border-border text-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Date</span>
-                        <span className="text-card-foreground">{selectedDate ? formatSelectedDate().split(",")[0] : "Not selected"}</span>
+                        <span className="text-card-foreground">
+                          {selectedDate ? formatSelectedDate().split(",")[0] : "Not selected"}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Time</span>
@@ -501,8 +612,7 @@ function addOneHour(timeStr: string): string {
                 </Card>
               </div>
             </div>
-            </div>
-          )}
+          </div>
         </div>
       </main>
     </div>

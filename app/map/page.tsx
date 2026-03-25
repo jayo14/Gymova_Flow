@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
+  Autocomplete,
+  Libraries,
+  useJsApiLoader,
+  type Autocomplete as GoogleAutocomplete,
+  type PlaceResult,
+} from "@react-google-maps/api"
+import {
   Search,
   MapPin,
   List,
@@ -30,6 +37,7 @@ type TrainerWithDistance = TrainerMapEntry & { distanceMi: number | null; distan
 
 type RouteSegment = { distanceKm: number; durationMin: number; line: RouteLine } | null
 type RouteInfo = { driving: RouteSegment; walking: RouteSegment }
+const MAP_LIBRARIES: Libraries = ["places"]
 
 // OSRM public server only supports the driving profile.
 // Walking time is derived from driving distance at 5 km/h walking speed.
@@ -73,30 +81,6 @@ function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return m > 0 ? `${h}h ${m}m` : `${h}h`
-}
-
-// Geocode address to lat/lng (Nominatim — free, no API key)
-async function geocodeAddress(
-  query: string
-): Promise<{ lat: number; lng: number; displayName: string } | null> {
-  const trimmed = query.trim()
-  if (!trimmed) return null
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&limit=1`
-    const res = await fetch(url, {
-      headers: { "Accept-Language": "en", "User-Agent": "GymovaFlow/1.0" },
-    })
-    const data = await res.json()
-    if (!Array.isArray(data) || data.length === 0) return null
-    const first = data[0] as { lat: string; lon: string; display_name: string }
-    return {
-      lat: parseFloat(first.lat),
-      lng: parseFloat(first.lon),
-      displayName: first.display_name ?? trimmed,
-    }
-  } catch {
-    return null
-  }
 }
 
 const MapView = dynamic(() => import("./MapView"), {
@@ -174,6 +158,12 @@ function TrainerListCard({
 }
 
 export default function MapPage() {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const { isLoaded: placesLoaded } = useJsApiLoader({
+    id: "gymovaflow-google-map",
+    googleMapsApiKey: apiKey ?? "",
+    libraries: MAP_LIBRARIES,
+  })
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTrainer, setSelectedTrainer] = useState<number | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(true)
@@ -188,14 +178,20 @@ export default function MapPage() {
   const [locationSearchQuery, setLocationSearchQuery] = useState("")
   const [locationSearchLoading, setLocationSearchLoading] = useState(false)
   const [locationSearchError, setLocationSearchError] = useState<string | null>(null)
+  const [cityFilter, setCityFilter] = useState<string | null>(null)
+  const autocompleteRef = useRef<GoogleAutocomplete | null>(null)
 
   useEffect(() => {
-    getTrainerMapEntries().then(({ data, error }) => {
+    setLoadingTrainers(true)
+    getTrainerMapEntries(cityFilter ?? undefined).then(({ data, error }) => {
       if (error) setFetchError(error)
-      else setTrainers(data)
+      else {
+        setFetchError(null)
+        setTrainers(data)
+      }
       setLoadingTrainers(false)
     })
-  }, [])
+  }, [cityFilter])
 
   const geoRequestIdRef = useRef(0)
 
@@ -247,20 +243,47 @@ export default function MapPage() {
     )
   }
 
+  const getCityFromPlace = (place: PlaceResult): string | null => {
+    const components = place.address_components ?? []
+    const city = components.find((c) => c.types.includes("locality"))?.long_name
+    if (city) return city
+    const fallback = components.find((c) => c.types.includes("administrative_area_level_2"))?.long_name
+    return fallback ?? null
+  }
+
+  const applySelectedPlace = (place: PlaceResult) => {
+    const lat = place.geometry?.location?.lat()
+    const lng = place.geometry?.location?.lng()
+    if (typeof lat !== "number" || typeof lng !== "number") {
+      setLocationSearchError("Address not found. Try selecting a suggestion.")
+      return
+    }
+
+    const city = getCityFromPlace(place)
+    applyLocation(lat, lng, false)
+    setLocationSearchQuery(place.formatted_address ?? place.name ?? "")
+    setCityFilter(city ? city.toLowerCase() : null)
+    setRouteInfo(null)
+    setLocationSearchError(null)
+    setSelectedTrainer(null)
+  }
+
   const handleLocationSearch = async () => {
     const q = locationSearchQuery.trim()
     if (!q) return
-    setLocationSearchError(null)
-    setLocationSearchLoading(true)
-    const result = await geocodeAddress(q)
-    setLocationSearchLoading(false)
-    if (!result) {
-      setLocationSearchError("Address not found. Try 'Wolfville, NS' or a full address.")
+    if (!placesLoaded || !autocompleteRef.current) {
+      setLocationSearchError("Location search is loading. Try again in a moment.")
       return
     }
-    applyLocation(result.lat, result.lng)
-    setLocationSearchQuery(result.displayName)
-    setRouteInfo(null)
+    setLocationSearchLoading(true)
+    const place = autocompleteRef.current.getPlace()
+    if (!place || !place.geometry?.location) {
+      setLocationSearchLoading(false)
+      setLocationSearchError("Please select a location from suggestions.")
+      return
+    }
+    applySelectedPlace(place)
+    setLocationSearchLoading(false)
   }
 
   const withDistance = (trainer: TrainerMapEntry): TrainerWithDistance => {
@@ -293,8 +316,8 @@ export default function MapPage() {
   const filteredTrainers: TrainerWithDistance[] = trainers
     .filter(
       (t) =>
-        t.trainer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.specialties.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()))
+        (t.trainer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.specialties.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase())))
     )
     .map(withDistance)
     .sort((a, b) => {
@@ -335,16 +358,43 @@ export default function MapPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative flex-1 min-w-[200px] flex items-center gap-2">
               <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-              <Input
-                placeholder="Enter your address or city (e.g. Wolfville, NS)"
-                value={locationSearchQuery}
-                onChange={(e) => {
-                  setLocationSearchQuery(e.target.value)
-                  setLocationSearchError(null)
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleLocationSearch()}
-                className="bg-input border-border"
-              />
+              {placesLoaded ? (
+                <Autocomplete
+                  onLoad={(instance) => {
+                    autocompleteRef.current = instance
+                  }}
+                  onPlaceChanged={() => {
+                    const place = autocompleteRef.current?.getPlace()
+                    if (!place) return
+                    applySelectedPlace(place)
+                  }}
+                  options={{
+                    fields: ["address_components", "formatted_address", "geometry", "name"],
+                    types: ["geocode"],
+                  }}
+                >
+                  <Input
+                    placeholder="Enter your address or city (e.g. Wolfville, NS)"
+                    value={locationSearchQuery}
+                    onChange={(e) => {
+                      setLocationSearchQuery(e.target.value)
+                      setLocationSearchError(null)
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleLocationSearch()}
+                    className="bg-input border-border"
+                  />
+                </Autocomplete>
+              ) : (
+                <Input
+                  placeholder="Enter your address or city (e.g. Wolfville, NS)"
+                  value={locationSearchQuery}
+                  onChange={(e) => {
+                    setLocationSearchQuery(e.target.value)
+                    setLocationSearchError(null)
+                  }}
+                  className="bg-input border-border"
+                />
+              )}
               <Button
                 onClick={handleLocationSearch}
                 disabled={locationSearchLoading || !locationSearchQuery.trim()}

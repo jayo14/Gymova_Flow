@@ -31,6 +31,7 @@ export type TrainerMapEntry = {
   avatar: string | null
   specialties: string[]
   price_per_session: number
+  city: string
   latitude: number
   longitude: number
 }

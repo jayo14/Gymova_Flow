@@ -52,14 +52,14 @@ export async function getTrainerLocationsWithGyms(): Promise<{
  * Fetch trainer map entries: trainer + gym location + profile avatar.
  * Used to populate the /map page markers and sidebar cards.
  */
-export async function getTrainerMapEntries(): Promise<{
+export async function getTrainerMapEntries(city?: string): Promise<{
   data: TrainerMapEntry[]
   error: string | null
 }> {
   const { data, error } = await supabase.from("trainer_locations").select(`
       trainer_id,
       gym_location_id,
-      gym_location:gym_locations(latitude, longitude),
+      gym_location:gym_locations(city, latitude, longitude),
       trainer:trainers(id, name, price, specializations, user_id)
     `)
 
@@ -68,7 +68,7 @@ export async function getTrainerMapEntries(): Promise<{
   type RawRow = {
     trainer_id: number
     gym_location_id: string
-    gym_location: { latitude: number; longitude: number } | null
+    gym_location: { city: string; latitude: number; longitude: number } | null
     trainer: {
       id: number
       name: string
@@ -104,11 +104,16 @@ export async function getTrainerMapEntries(): Promise<{
       avatar: r.trainer?.user_id ? (profileMap[r.trainer.user_id] ?? null) : null,
       specialties: Array.isArray(r.trainer?.specializations) ? r.trainer!.specializations : [],
       price_per_session: r.trainer?.price ?? 0,
+      city: r.gym_location?.city ?? "",
       latitude: r.gym_location?.latitude ?? 0,
       longitude: r.gym_location?.longitude ?? 0,
     }))
+  const normalizedCity = city?.trim().toLowerCase()
+  const filteredEntries = normalizedCity
+    ? entries.filter((entry) => entry.city.toLowerCase() === normalizedCity)
+    : entries
 
-  return { data: entries, error: null }
+  return { data: filteredEntries, error: null }
 }
 
 /**

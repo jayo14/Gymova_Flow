@@ -21,7 +21,6 @@ import {
   X,
   SlidersHorizontal,
   Map as MapIcon,
-  Dumbbell,
   Sparkles,
   Loader2,
 } from "lucide-react"
@@ -36,6 +35,7 @@ import {
 import { getTrainers } from "@/lib/supabase/trainers"
 import { getClientGoals, upsertClientGoals } from "@/lib/supabase/clientGoals"
 import { supabase } from "@/lib/supabaseClient"
+import { AthleteDashboardShell } from "@/components/dashboard/AthleteDashboardShell"
 import type { TrainerListItem } from "@/types/trainer"
 
 const specializations = [
@@ -364,33 +364,21 @@ export default function TrainersPage() {
     })
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Dumbbell className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-bold text-foreground hidden sm:inline">GymovaFlow</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/map">
-              <Button variant="outline" size="sm" className="border-border text-foreground hover:bg-secondary">
-                <MapIcon className="w-4 h-4 mr-2" />
-                Map View
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="pt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AthleteDashboardShell title="Find Trainers" contentClassName="p-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Find Your Perfect Trainer</h1>
-            <p className="text-muted-foreground">Discover certified personal trainers near you</p>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Find Your Perfect Trainer</h1>
+                <p className="text-muted-foreground">Discover certified personal trainers near you</p>
+              </div>
+              <Link href="/map">
+                <Button variant="outline" size="sm" className="border-border text-foreground hover:bg-secondary">
+                  <MapIcon className="w-4 h-4 mr-2" />
+                  Map View
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {loadError && (
@@ -622,8 +610,7 @@ export default function TrainersPage() {
               )}
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </AthleteDashboardShell>
   )
 }

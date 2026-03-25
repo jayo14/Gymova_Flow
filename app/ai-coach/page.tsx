@@ -1,13 +1,11 @@
 "use client"
 
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Send,
   Sparkles,
-  ArrowLeft,
   User,
   Dumbbell,
   Lightbulb,
@@ -16,8 +14,8 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { Suspense, useEffect, useRef, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useAuth } from "@/components/auth/AuthProvider"
+import { useSearchParams } from "next/navigation"
+import { AthleteDashboardShell } from "@/components/dashboard/AthleteDashboardShell"
 
 // Lightweight markdown renderer: bold, headers, unordered lists
 function MarkdownContent({ text, className }: { text: string; className?: string }) {
@@ -135,38 +133,22 @@ interface Message {
 const initialMessages: Message[] = []
 
 function AICoachContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const { session, loading } = useAuth()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const sentInitialRef = useRef(false)
 
-  useEffect(() => {
-    if (!loading && !session) {
-      router.replace("/login")
-    }
-  }, [loading, session, router])
-
   // Auto-send query from ?q= param (e.g. from dashboard quick-send)
   useEffect(() => {
-    if (loading || !session || sentInitialRef.current) return
+    if (sentInitialRef.current) return
     const q = searchParams?.get("q")
     if (q) {
       sentInitialRef.current = true
       handleSend(q)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, session, searchParams])
-
-  if (loading || (!session && typeof window !== "undefined")) {
-    return (
-      <div className="h-screen bg-background flex items-center justify-center">
-        <span className="text-muted-foreground">Checking your session...</span>
-      </div>
-    )
-  }
+  }, [searchParams])
 
   const handleSend = async (message: string) => {
     if (!message.trim()) return
@@ -205,26 +187,20 @@ function AICoachContent() {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-foreground">AI Fitness Coach</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleNewChat}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            New Chat
-          </Button>
-        </div>
-      </header>
-
-      <main className="flex-1 pt-16 pb-24 overflow-y-auto">
+    <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
+      <main className="flex-1 pb-6 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">AI Fitness Coach</h1>
+              <p className="text-sm text-muted-foreground mt-1">Personalized guidance for workouts and nutrition</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleNewChat}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              New Chat
+            </Button>
+          </div>
+
           {messages.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
@@ -309,7 +285,7 @@ function AICoachContent() {
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
+      <div className="border-t border-border bg-background p-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-2">
             <Input
@@ -339,7 +315,7 @@ function AICoachContent() {
 
 function AICoachFallback() {
   return (
-    <div className="h-screen bg-background flex items-center justify-center">
+    <div className="h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
       <span className="text-muted-foreground">Loading AI Coach...</span>
     </div>
   )
@@ -347,8 +323,10 @@ function AICoachFallback() {
 
 export default function AICoachPage() {
   return (
-    <Suspense fallback={<AICoachFallback />}>
-      <AICoachContent />
-    </Suspense>
+    <AthleteDashboardShell title="AI Coach" contentClassName="p-0">
+      <Suspense fallback={<AICoachFallback />}>
+        <AICoachContent />
+      </Suspense>
+    </AthleteDashboardShell>
   )
 }

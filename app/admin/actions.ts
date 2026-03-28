@@ -41,7 +41,7 @@ export async function adminLogin(formData: FormData) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
     path: "/",
   })
 
@@ -60,7 +60,6 @@ export async function approveTrainer(
 ): Promise<{ error?: string }> {
   await requireAdminSession()
 
-  // 1. Mark the application as approved.
   const { error: appError } = await supabaseAdmin
     .from("trainer_applications")
     .update({ status: "approved" })
@@ -70,20 +69,17 @@ export async function approveTrainer(
     return { error: "Failed to update application: " + appError.message }
   }
 
-  // 2. Unlock login access by setting trainer_status = approved on profiles.
   const { error: profileError } = await supabaseAdmin
     .from("profiles")
-    .update({ trainer_status: "approved" })
+    .update({ role: "trainer", trainer_status: "approved" })
     .eq("id", userId)
 
   if (profileError) {
     return {
-      error:
-        "Application approved but profile update failed: " + profileError.message,
+      error: "Application approved but profile update failed: " + profileError.message,
     }
   }
 
-  // 3. Fetch the application data to populate the trainers table.
   const { data: application, error: fetchError } = await supabaseAdmin
     .from("trainer_applications")
     .select("name, email, specializations, certifications, experience, hourly_rate, bio, location")
@@ -91,7 +87,7 @@ export async function approveTrainer(
     .single()
 
   if (fetchError || !application) {
-    console.error("Could not fetch application data for trainers insert:", fetchError)
+    console.error("Could not fetch application data for trainer_records upsert:", fetchError)
     return {}
   }
 
@@ -118,32 +114,29 @@ export async function approveTrainer(
     reviews_list: [],
   }
 
-  // 4. Check if a trainers row already exists for this user.
   const { data: existingTrainer } = await supabaseAdmin
-    .from("trainers")
+    .from("trainer_records")
     .select("id")
     .eq("user_id", userId)
     .maybeSingle()
 
   if (existingTrainer) {
-    // Update the existing row.
     const { error: updateError } = await supabaseAdmin
-      .from("trainers")
+      .from("trainer_records")
       .update(trainerPayload)
       .eq("user_id", userId)
 
     if (updateError) {
-      console.error("Trainers table update failed after approval:", updateError)
+      console.error("trainer_records update failed after approval:", updateError)
       return { error: "Trainer approved but public profile update failed: " + updateError.message }
     }
   } else {
-    // Insert a new row.
     const { error: insertError } = await supabaseAdmin
-      .from("trainers")
+      .from("trainer_records")
       .insert(trainerPayload)
 
     if (insertError) {
-      console.error("Trainers table insert failed after approval:", insertError)
+      console.error("trainer_records insert failed after approval:", insertError)
       return { error: "Trainer approved but public profile creation failed: " + insertError.message }
     }
   }
@@ -168,7 +161,7 @@ export async function rejectTrainer(
 
   const { error: profileError } = await supabaseAdmin
     .from("profiles")
-    .update({ trainer_status: "rejected" })
+    .update({ role: "trainer", trainer_status: "rejected" })
     .eq("id", userId)
 
   if (profileError) {

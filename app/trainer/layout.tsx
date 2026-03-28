@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
+  Bell,
   Calendar,
   Clock,
   LayoutDashboard,
@@ -14,14 +15,17 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider"
 import { DashboardSidebar, DashboardSidebarLink } from "@/components/dashboard/Sidebar"
 import { DashboardTopNav } from "@/components/dashboard/TopNav"
+import { getProfile } from "@/lib/supabase/profiles"
+import { getDashboardRouteForProfile } from "@/lib/rbac"
 import { supabase } from "@/lib/supabaseClient"
-import { getIsApprovedTrainer } from "@/lib/trainerAuth"
+import type { Profile } from "@/types/profile"
 
 const sidebarLinks: DashboardSidebarLink[] = [
   { href: "/trainer", label: "Dashboard", icon: LayoutDashboard },
   { href: "/trainer/availability", label: "My availability", icon: Clock },
   { href: "/trainer/sessions", label: "Sessions", icon: Calendar },
   { href: "/trainer/locations", label: "My locations", icon: MapPin },
+  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
   { href: "/messages", label: "Messages", icon: MessageCircle },
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ]
@@ -36,7 +40,8 @@ function getTrainerTitle(pathname: string): string {
 export default function TrainerLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [trainerChecked, setTrainerChecked] = useState(false)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileReady, setProfileReady] = useState(false)
 
   const router = useRouter()
   const pathname = usePathname()
@@ -50,20 +55,23 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
       return
     }
 
-    getIsApprovedTrainer(session.user.id).then((isTrainer) => {
-      setTrainerChecked(true)
-      if (!isTrainer) {
-        router.replace("/dashboard")
+    getProfile(session.user.id).then(({ data }) => {
+      setProfile(data)
+      setProfileReady(true)
+
+      const nextPath = getDashboardRouteForProfile(data)
+      if (nextPath !== "/trainer" && pathname.startsWith("/trainer")) {
+        router.replace(nextPath)
       }
     })
-  }, [loading, router, session])
+  }, [loading, pathname, router, session])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.replace("/login")
   }
 
-  if (loading || !trainerChecked || !session) {
+  if (loading || !profileReady || !session) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <span className="text-muted-foreground">Loading trainer dashboard...</span>

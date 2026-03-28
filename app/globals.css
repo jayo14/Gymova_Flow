@@ -1,4 +1,4 @@
-@import 'maplibre-gl/dist/maplibre-gl.css';
+@import 'leaflet/dist/leaflet.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -126,36 +126,59 @@
   }
 }
 
-.gymova-map-marker {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+.gymova-leaflet-marker {
+  width: 34px;
+  height: 34px;
   border-radius: 9999px;
-  background: rgba(10, 16, 24, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 16, 24, 0.95);
   color: #f8fafc;
-  padding: 0.35rem 0.55rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
 }
 
-.gymova-map-marker.is-selected {
+.gymova-leaflet-marker.is-selected {
   background: rgba(132, 204, 22, 0.95);
   color: #14210a;
 }
 
-.gymova-map-marker__emoji,
-.gymova-map-marker__price {
-  font-size: 0.75rem;
-  font-weight: 700;
+.gymova-leaflet-marker.is-saved {
+  width: 30px;
+  height: 30px;
+  background: rgba(30, 41, 59, 0.92);
+}
+
+.gymova-leaflet-marker__glyph {
+  font-size: 14px;
   line-height: 1;
 }
 
-.gymova-user-marker {
-  width: 18px;
-  height: 18px;
+.gymova-leaflet-user-marker {
+  width: 22px;
+  height: 22px;
   border-radius: 9999px;
   background: #2563eb;
-  border: 3px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.18);
+  border: 4px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 10px rgba(37, 99, 235, 0.18);
+}
+
+.gymova-leaflet-user-marker.is-gps {
+  box-shadow: 0 0 0 12px rgba(37, 99, 235, 0.16);
+}
+
+.leaflet-container {
+  z-index: 0;
+  background: #0b1220;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--card);
+  color: var(--card-foreground);
+}
+
+.leaflet-popup-content {
+  margin: 12px;
 }

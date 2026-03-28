@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
-import maplibregl, { type LngLatBoundsLike, type Map as MapLibreMap, type Marker } from "maplibre-gl"
-import { Navigation, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useMemo } from "react"
+import L from "leaflet"
+import { MapContainer, Marker, Popup, Polyline, TileLayer, useMap, useMapEvents } from "react-leaflet"
+import { Loader2, Navigation } from "lucide-react"
 import { getLineBounds, getSpecialtyEmoji, type LatLng, type RouteLine } from "@/lib/map-utils"
 import type { TrainerMapEntry } from "@/types/location"
 
@@ -12,54 +14,66 @@ export type TrainerWithDistance = TrainerMapEntry & {
 }
 
 const FALLBACK_CENTER: LatLng = { lat: 44.6488, lng: -63.5752 }
-const OSM_STYLE = {
-  version: 8,
-  sources: {
-    "openstreetmap-raster": {
-      type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      attribution: "&copy; OpenStreetMap contributors",
-      maxzoom: 19,
-    },
-  },
-  layers: [
-    {
-      id: "osm-tiles",
-      type: "raster",
-      source: "openstreetmap-raster",
-      minzoom: 0,
-      maxzoom: 22,
-    },
-  ],
-} as const
+const TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL ?? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 
-function createTrainerMarker(trainer: TrainerWithDistance, selected: boolean) {
-  const element = document.createElement("button")
-  element.type = "button"
-  element.className = `gymova-map-marker${selected ? " is-selected" : ""}`
-  element.innerHTML = `
-    <span class="gymova-map-marker__emoji">${getSpecialtyEmoji(trainer.specialties)}</span>
-    <span class="gymova-map-marker__price">$${trainer.price_per_session}</span>
-  `
-  return element
+function createTrainerIcon(selected: boolean) {
+  return L.divIcon({
+    className: "",
+    html: `<div class=\"gymova-leaflet-marker${selected ? " is-selected" : ""}\"><span class=\"gymova-leaflet-marker__glyph\">🏋</span></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  })
 }
 
-function createUserMarker() {
-  const element = document.createElement("div")
-  element.className = "gymova-user-marker"
-  return element
+const userIcon = L.divIcon({
+  className: "",
+  html: '<div class="gymova-leaflet-user-marker"></div>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+})
+
+function MapViewportSync({
+  clientLocation,
+  routeLine,
+  trainers,
+}: {
+  clientLocation: LatLng | null
+  routeLine: RouteLine | null
+  trainers: TrainerWithDistance[]
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (routeLine && routeLine.length > 1) {
+      const bounds = getLineBounds(routeLine)
+      if (bounds) {
+        map.fitBounds(bounds, { padding: [56, 56] })
+        return
+      }
+    }
+
+    if (clientLocation) {
+      map.setView([clientLocation.lat, clientLocation.lng], Math.max(map.getZoom(), 13), { animate: true })
+      return
+    }
+
+    if (trainers.length > 0) {
+      const bounds = L.latLngBounds(trainers.map((trainer) => [trainer.latitude, trainer.longitude] as [number, number]))
+      map.fitBounds(bounds, { padding: [56, 56], maxZoom: 12 })
+    }
+  }, [clientLocation, map, routeLine, trainers])
+
+  return null
 }
 
-function toGeoJson(line: RouteLine) {
-  return {
-    type: "Feature" as const,
-    properties: {},
-    geometry: {
-      type: "LineString" as const,
-      coordinates: line.map(([lat, lng]) => [lng, lat]),
+function MapClickCapture({ onLocationSet }: { onLocationSet: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(event) {
+      onLocationSet(event.latlng.lat, event.latlng.lng)
     },
-  }
+  })
+
+  return null
 }
 
 export default function OpenMap({
@@ -83,134 +97,95 @@ export default function OpenMap({
   onRequestLocation: () => void
   locationStatus: "idle" | "loading" | "granted" | "denied"
 }) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<MapLibreMap | null>(null)
-  const trainerMarkersRef = useRef<Marker[]>([])
-  const userMarkerRef = useRef<Marker | null>(null)
-  const hasAppliedInitialBoundsRef = useRef(false)
-  const routeBounds = useMemo(() => (routeLine ? getLineBounds(routeLine) : null), [routeLine])
-
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return
-
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: OSM_STYLE,
-      center: [clientLocation?.lng ?? FALLBACK_CENTER.lng, clientLocation?.lat ?? FALLBACK_CENTER.lat],
-      zoom: clientLocation ? 12 : 9,
-      attributionControl: false,
-    })
-
-    map.addControl(new maplibregl.AttributionControl({ compact: true }))
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right")
-
-    map.on("click", (event) => {
-      onLocationSet(event.lngLat.lat, event.lngLat.lng)
-    })
-
-    map.on("load", () => {
-      map.addSource("route", {
-        type: "geojson",
-        data: {
-          type: "Feature",
-          properties: {},
-          geometry: { type: "LineString", coordinates: [] },
-        },
-      })
-
-      map.addLayer({
-        id: "route-line",
-        type: "line",
-        source: "route",
-        paint: {
-          "line-color": routeMode === "driving" ? "#3b82f6" : "#22c55e",
-          "line-width": 5,
-          "line-opacity": 0.95,
-          "line-dasharray": routeMode === "walking" ? [1, 1.8] : [1, 0],
-        },
-      })
-    })
-
-    mapRef.current = map
-
-    return () => {
-      trainerMarkersRef.current.forEach((marker) => marker.remove())
-      trainerMarkersRef.current = []
-      userMarkerRef.current?.remove()
-      map.remove()
-      mapRef.current = null
-    }
-  }, [clientLocation, onLocationSet, routeMode])
-
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !map.isStyleLoaded()) return
-
-    const source = map.getSource("route") as maplibregl.GeoJSONSource | undefined
-    if (!source) return
-
-    source.setData(routeLine ? toGeoJson(routeLine) : toGeoJson([]))
-
-    if (map.getLayer("route-line")) {
-      map.setPaintProperty("route-line", "line-color", routeMode === "driving" ? "#3b82f6" : "#22c55e")
-      map.setPaintProperty("route-line", "line-dasharray", routeMode === "walking" ? [1, 1.8] : [1, 0])
-    }
-
-    if (routeBounds) {
-      hasAppliedInitialBoundsRef.current = true
-      map.fitBounds(routeBounds as LngLatBoundsLike, { padding: 60, duration: 800 })
-    }
-  }, [routeBounds, routeLine, routeMode])
-
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !clientLocation) return
-
-    if (!userMarkerRef.current) {
-      userMarkerRef.current = new maplibregl.Marker({ element: createUserMarker() })
-        .setLngLat([clientLocation.lng, clientLocation.lat])
-        .addTo(map)
-    } else {
-      userMarkerRef.current.setLngLat([clientLocation.lng, clientLocation.lat])
-    }
-
-    if (!routeLine && !hasAppliedInitialBoundsRef.current) {
-      map.flyTo({ center: [clientLocation.lng, clientLocation.lat], zoom: 13, duration: 600 })
-    }
-  }, [clientLocation, routeLine])
-
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map) return
-
-    trainerMarkersRef.current.forEach((marker) => marker.remove())
-    trainerMarkersRef.current = []
-
-    trainers.forEach((trainer) => {
-      const marker = new maplibregl.Marker({
-        element: createTrainerMarker(trainer, trainer.trainer_id === selectedTrainer),
-        anchor: "bottom",
-      })
-        .setLngLat([trainer.longitude, trainer.latitude])
-        .addTo(map)
-
-      marker.getElement().addEventListener("click", () => onSelectTrainer(trainer.trainer_id))
-      trainerMarkersRef.current.push(marker)
-    })
-
-    if (!routeLine && !clientLocation && trainers.length > 0 && !hasAppliedInitialBoundsRef.current) {
-      const bounds = new maplibregl.LngLatBounds()
-      trainers.forEach((trainer) => bounds.extend([trainer.longitude, trainer.latitude]))
-      map.fitBounds(bounds, { padding: 80, duration: 0, maxZoom: 12 })
-      hasAppliedInitialBoundsRef.current = true
-    }
-  }, [clientLocation, onSelectTrainer, routeLine, selectedTrainer, trainers])
+  const routePositions = useMemo(() => routeLine?.map(([lat, lng]) => [lat, lng] as [number, number]) ?? [], [routeLine])
 
   return (
-    <div className="w-full h-full relative">
-      <div ref={containerRef} className="w-full h-full" />
+    <div className="w-full h-full relative z-0">
+      <MapContainer
+        center={[clientLocation?.lat ?? FALLBACK_CENTER.lat, clientLocation?.lng ?? FALLBACK_CENTER.lng]}
+        zoom={clientLocation ? 12 : 9}
+        scrollWheelZoom
+        className="w-full h-full"
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url={TILE_URL}
+        />
 
-      <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+        <MapClickCapture onLocationSet={onLocationSet} />
+        <MapViewportSync clientLocation={clientLocation} routeLine={routeLine} trainers={trainers} />
+
+        {clientLocation && <Marker position={[clientLocation.lat, clientLocation.lng]} icon={userIcon} />}
+
+        {routePositions.length > 1 && (
+          <Polyline
+            positions={routePositions}
+            pathOptions={{
+              color: routeMode === "driving" ? "#3b82f6" : "#22c55e",
+              weight: 5,
+              opacity: 0.95,
+              dashArray: routeMode === "walking" ? "8 10" : undefined,
+            }}
+          />
+        )}
+
+        {trainers.map((trainer) => {
+          const selected = trainer.trainer_id === selectedTrainer
+          return (
+            <Marker
+              key={`${trainer.trainer_id}-${trainer.gym_location_id}`}
+              position={[trainer.latitude, trainer.longitude]}
+              icon={createTrainerIcon(selected)}
+              eventHandlers={{
+                click: () => onSelectTrainer(trainer.trainer_id),
+              }}
+            >
+              <Popup minWidth={260}>
+                <div className="space-y-3 min-w-[230px]">
+                  <div className="flex items-start gap-3">
+                    {trainer.avatar ? (
+                      <img
+                        src={trainer.avatar}
+                        alt={trainer.trainer_name}
+                        className="w-12 h-12 rounded-full object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0">
+                        {getSpecialtyEmoji(trainer.specialties)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-card-foreground truncate">{trainer.trainer_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {trainer.specialties.slice(0, 2).join(" · ") || "Personal training"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{trainer.distanceLabel} away</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Session fee</span>
+                    <span className="font-semibold text-primary">${trainer.price_per_session}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/booking/${trainer.trainer_id}`} className="flex-1">
+                      <span className="inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">
+                        Book now
+                      </span>
+                    </Link>
+                    <Link href={`/trainers/${trainer.trainer_id}`} className="flex-1">
+                      <span className="inline-flex w-full items-center justify-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground">
+                        View profile
+                      </span>
+                    </Link>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          )
+        })}
+      </MapContainer>
+
+      <div className="absolute top-3 left-3 z-[900] flex items-center gap-2">
         <button
           type="button"
           onClick={onRequestLocation}
@@ -226,7 +201,7 @@ export default function OpenMap({
       </div>
 
       {locationStatus === "denied" && (
-        <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-sm bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-md">
+        <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-sm z-[900] bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-md">
           <p className="text-xs text-muted-foreground">Location access was denied. Search an address or click the map.</p>
         </div>
       )}

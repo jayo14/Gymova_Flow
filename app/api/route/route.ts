@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server"
-import { findShortestPathByDijkstra, type RouteLine } from "@/lib/map-utils"
+import {
+  estimateDrivingMinutes,
+  estimateWalkingMinutes,
+  findShortestPathByDijkstra,
+  getDistanceKm,
+  type RouteLine,
+} from "@/lib/map-utils"
 
 type OsrmRouteResponse = {
   code?: string
@@ -11,8 +17,6 @@ type OsrmRouteResponse = {
     }
   }>
 }
-
-const WALKING_SPEED_KMH = 5
 
 async function fetchRouteFromOsrm(
   fromLat: number,
@@ -35,6 +39,27 @@ function toRouteLine(coordinates: [number, number][]): RouteLine {
   return coordinates.map(([lng, lat]) => [lat, lng])
 }
 
+function buildApproximateFallback(
+  fromLat: number,
+  fromLng: number,
+  toLat: number,
+  toLng: number,
+  profile: "driving" | "walking"
+) {
+  const distanceKm = getDistanceKm(fromLat, fromLng, toLat, toLng)
+  return {
+    distanceKm,
+    durationMin: profile === "walking" ? estimateWalkingMinutes(distanceKm) : estimateDrivingMinutes(distanceKm),
+    line: [
+      [fromLat, fromLng],
+      [toLat, toLng],
+    ] satisfies RouteLine,
+    requestedProfile: profile,
+    resolvedProfile: "fallback",
+    fallbackUsed: true,
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const fromLat = Number(searchParams.get("fromLat"))
@@ -47,6 +72,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid route coordinates." }, { status: 400 })
   }
 
+  const crowDistanceKm = getDistanceKm(fromLat, fromLng, toLat, toLng)
+  if (crowDistanceKm > 250) {
+    return NextResponse.json(buildApproximateFallback(fromLat, fromLng, toLat, toLng, requestedProfile))
+  }
+
   try {
     let resolvedProfile: "driving" | "walking" = requestedProfile
     let route = await fetchRouteFromOsrm(fromLat, fromLng, toLat, toLng, requestedProfile)
@@ -57,18 +87,19 @@ export async function GET(request: Request) {
     }
 
     if (!route) {
-      return NextResponse.json({ error: "Route unavailable." }, { status: 502 })
+      return NextResponse.json(buildApproximateFallback(fromLat, fromLng, toLat, toLng, requestedProfile))
     }
 
     const rawLine = toRouteLine(route.geometry.coordinates)
     const shortestPath = findShortestPathByDijkstra(rawLine)
+    const distanceKm = shortestPath.distanceKm || route.distance / 1000
     const durationMin =
       requestedProfile === "walking"
-        ? Math.max(1, Math.round((shortestPath.distanceKm / WALKING_SPEED_KMH) * 60))
+        ? estimateWalkingMinutes(distanceKm)
         : Math.max(1, Math.round(route.duration / 60))
 
     return NextResponse.json({
-      distanceKm: shortestPath.distanceKm || route.distance / 1000,
+      distanceKm,
       durationMin,
       line: shortestPath.path,
       requestedProfile,
@@ -76,6 +107,6 @@ export async function GET(request: Request) {
       fallbackUsed: requestedProfile !== resolvedProfile,
     })
   } catch {
-    return NextResponse.json({ error: "Unable to calculate route right now." }, { status: 502 })
+    return NextResponse.json(buildApproximateFallback(fromLat, fromLng, toLat, toLng, requestedProfile))
   }
 }

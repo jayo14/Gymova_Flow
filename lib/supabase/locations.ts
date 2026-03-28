@@ -80,7 +80,7 @@ export async function getTrainerMapEntries(city?: string): Promise<{
 
   const rows = (data ?? []) as unknown as RawRow[]
 
-  const userIds = rows.map((r) => r.trainer?.user_id).filter(Boolean) as string[]
+  const userIds = rows.map((row) => row.trainer?.user_id).filter(Boolean) as string[]
   const profileMap: Record<string, string | null> = {}
 
   if (userIds.length > 0) {
@@ -89,31 +89,59 @@ export async function getTrainerMapEntries(city?: string): Promise<{
       .select("id, avatar_url")
       .in("id", userIds)
 
-    for (const p of profiles ?? []) {
-      const row = p as { id: string; avatar_url: string | null }
+    for (const profile of profiles ?? []) {
+      const row = profile as { id: string; avatar_url: string | null }
       profileMap[row.id] = row.avatar_url
     }
   }
 
   const entries: TrainerMapEntry[] = rows
-    .filter((r) => r.trainer !== null && r.gym_location !== null)
-    .map((r) => ({
-      trainer_id: r.trainer_id,
-      gym_location_id: r.gym_location_id,
-      trainer_name: r.trainer?.name ?? "Trainer",
-      avatar: r.trainer?.user_id ? (profileMap[r.trainer.user_id] ?? null) : null,
-      specialties: Array.isArray(r.trainer?.specializations) ? r.trainer!.specializations : [],
-      price_per_session: r.trainer?.price ?? 0,
-      city: r.gym_location?.city ?? "",
-      latitude: r.gym_location?.latitude ?? 0,
-      longitude: r.gym_location?.longitude ?? 0,
+    .filter((row) => row.trainer !== null && row.gym_location !== null)
+    .map((row) => ({
+      trainer_id: row.trainer_id,
+      gym_location_id: row.gym_location_id,
+      trainer_name: row.trainer?.name ?? "Trainer",
+      avatar: row.trainer?.user_id ? (profileMap[row.trainer.user_id] ?? null) : null,
+      specialties: Array.isArray(row.trainer?.specializations) ? row.trainer.specializations : [],
+      price_per_session: row.trainer?.price ?? 0,
+      city: row.gym_location?.city ?? "",
+      latitude: row.gym_location?.latitude ?? 0,
+      longitude: row.gym_location?.longitude ?? 0,
     }))
+
   const normalizedCity = city?.trim().toLowerCase()
   const filteredEntries = normalizedCity
     ? entries.filter((entry) => entry.city.toLowerCase() === normalizedCity)
     : entries
 
   return { data: filteredEntries, error: null }
+}
+
+export async function createGymLocation(input: {
+  name: string
+  address: string
+  city: string
+  province: string
+  country: string
+  latitude: number
+  longitude: number
+}): Promise<{ data: GymLocation | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from("gym_locations")
+    .insert({
+      name: input.name,
+      address: input.address,
+      city: input.city,
+      province: input.province,
+      country: input.country,
+      latitude: input.latitude,
+      longitude: input.longitude,
+    })
+    .select("id, name, address, city, province, country, latitude, longitude")
+    .single()
+
+  if (error) return { data: null, error: error.message }
+  return { data: data as GymLocation, error: null }
 }
 
 /**

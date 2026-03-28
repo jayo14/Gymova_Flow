@@ -16,6 +16,15 @@ export type LocationSuggestion = {
   country: string | null
 }
 
+export type ReverseGeocodeResult = {
+  label: string
+  name: string
+  address: string
+  city: string
+  province: string
+  country: string
+}
+
 type RouteGraph = {
   nodes: string[]
   edges: Map<string, Array<{ to: string; weight: number }>>
@@ -36,6 +45,23 @@ export function getSpecialtyEmoji(specialties: string[]): string {
 
 export function getDistanceMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
   return distance(point([lng1, lat1]), point([lng2, lat2]), { units: "miles" })
+}
+
+export function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  return distance(point([lng1, lat1]), point([lng2, lat2]), { units: "kilometers" })
+}
+
+export function estimateWalkingMinutes(distanceKm: number): number {
+  return Math.max(1, Math.round((distanceKm / 5) * 60))
+}
+
+export function estimateDrivingMinutes(distanceKm: number): number {
+  const avgSpeedKmh = distanceKm <= 8 ? 28 : distanceKm <= 30 ? 38 : distanceKm <= 120 ? 55 : 72
+  return Math.max(1, Math.round((distanceKm / avgSpeedKmh) * 60))
+}
+
+export function formatDistanceKm(distanceKm: number): string {
+  return distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`
 }
 
 export function getLineBounds(line: RouteLine): [[number, number], [number, number]] | null {

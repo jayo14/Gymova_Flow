@@ -39,6 +39,26 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
+  // Redirect from login/signup if already logged in
+  if ((pathname === "/login" || pathname === "/signup") && user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, trainer_status")
+      .eq("id", user.id)
+      .single()
+
+    if (profile?.role === "admin") {
+      return NextResponse.redirect(new URL("/admin", request.url))
+    }
+    if (profile?.role === "trainer") {
+      if (profile.trainer_status === "approved") {
+        return NextResponse.redirect(new URL("/trainer", request.url))
+      }
+      return NextResponse.redirect(new URL("/dashboard", request.url))
+    }
+    return NextResponse.redirect(new URL("/dashboard", request.url))
+  }
+
   // Protect admin routes
   if (pathname.startsWith("/admin")) {
     if (!user) {
@@ -56,29 +76,28 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect from login/signup if already logged in
-  if ((pathname === "/login" || pathname === "/signup") && user) {
+  // Protect trainer routes
+  if (pathname.startsWith("/trainer")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, trainer_status")
       .eq("id", user.id)
       .single()
 
-    if (profile?.role === "admin") {
-      return NextResponse.redirect(new URL("/admin", request.url))
+    if (profile?.role !== "trainer" || profile.trainer_status !== "approved") {
+      return NextResponse.redirect(new URL("/dashboard", request.url))
     }
-    if (profile?.role === "trainer") {
-        if (profile.trainer_status === "approved") {
-            return NextResponse.redirect(new URL("/trainer", request.url))
-        }
-        if (profile.trainer_status === "pending") {
-            return NextResponse.redirect(new URL("/trainer-pending", request.url))
-        }
-        if (profile.trainer_status === "rejected") {
-            return NextResponse.redirect(new URL("/trainer-rejected", request.url))
-        }
+  }
+
+  // Protect dashboard routes (requires login)
+  if (pathname.startsWith("/dashboard")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url))
     }
-    return NextResponse.next()
   }
 
   return response

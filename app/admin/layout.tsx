@@ -33,9 +33,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  if (pathname === "/admin/login") {
-    return <>{children}</>
-  }
 
   return (
     <div className="min-h-screen bg-background">

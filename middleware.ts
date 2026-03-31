@@ -62,7 +62,9 @@ export async function middleware(request: NextRequest) {
   // Protect admin routes
   if (pathname.startsWith("/admin")) {
     if (!user) {
-      return NextResponse.redirect(new URL("/login", request.url))
+      const searchParams = new URLSearchParams()
+      searchParams.set("next", pathname)
+      return NextResponse.redirect(new URL(`/login?${searchParams.toString()}`, request.url))
     }
 
     const { data: profile } = await supabase
@@ -79,7 +81,9 @@ export async function middleware(request: NextRequest) {
   // Protect trainer routes
   if (pathname.startsWith("/trainer")) {
     if (!user) {
-      return NextResponse.redirect(new URL("/login", request.url))
+      const searchParams = new URLSearchParams()
+      searchParams.set("next", pathname)
+      return NextResponse.redirect(new URL(`/login?${searchParams.toString()}`, request.url))
     }
 
     const { data: profile } = await supabase
@@ -96,7 +100,18 @@ export async function middleware(request: NextRequest) {
   // Protect dashboard routes (requires login)
   if (pathname.startsWith("/dashboard")) {
     if (!user) {
-      return NextResponse.redirect(new URL("/login", request.url))
+      const searchParams = new URLSearchParams()
+      searchParams.set("next", pathname)
+      return NextResponse.redirect(new URL(`/login?${searchParams.toString()}`, request.url))
+    }
+  }
+
+  // Also protect map which is part of athlete dashboard
+  if (pathname.startsWith("/map")) {
+    if (!user) {
+      const searchParams = new URLSearchParams()
+      searchParams.set("next", pathname)
+      return NextResponse.redirect(new URL(`/login?${searchParams.toString()}`, request.url))
     }
   }
 
@@ -104,5 +119,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login", "/signup", "/trainer/:path*", "/dashboard/:path*"],
+  matcher: ["/admin/:path*", "/login", "/signup", "/trainer/:path*", "/dashboard/:path*", "/map/:path*"],
 }

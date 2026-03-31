@@ -35,10 +35,12 @@ export default function LoginPage() {
         router.replace(`/verify-email?email=${encodeURIComponent(session.user.email ?? "")}&type=${accountType}`)
         return
       }
+      const params = new URLSearchParams(window.location.search)
+      const nextPath = params.get("next")
 
       getRoleRedirectPath(session.user.id).then((path) => {
         if (isHandlingSubmit.current) return
-        router.replace(path)
+        router.replace(nextPath || path)
       })
     }
   }, [loading, session, router])
@@ -109,7 +111,12 @@ export default function LoginPage() {
       return
     }
 
-    const redirectPath = await getRoleRedirectPath(userId)
+    const params = new URLSearchParams(window.location.search)
+    const nextPath = params.get("next")
+    
+    const roleRedirectPath = await getRoleRedirectPath(userId)
+    const redirectPath = nextPath || roleRedirectPath
+    
     setIsLoading(false)
     router.replace(redirectPath)
   }

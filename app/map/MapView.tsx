@@ -1,1 +1,2 @@
-export { default, type RouteLine, type TrainerWithDistance } from "@/components/map/GoogleMap"
+export { default, type TrainerWithDistance } from "@/components/map/OpenMap"
+export type { RouteLine } from "@/lib/map-utils"

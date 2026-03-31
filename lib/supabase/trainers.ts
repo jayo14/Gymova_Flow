@@ -3,16 +3,13 @@ import { ensureAvailability } from "@/lib/supabase/availability"
 import type { Trainer, TrainerListItem, TrainerReview } from "@/types/trainer"
 
 const TRAINER_LIST_COLUMNS =
-  "id, name, specialty, rating, reviews, price, location, distance, specializations"
+  "id, user_id, name, avatar_url, specialty, rating, reviews, price, location, distance, specializations"
 
 const TRAINER_FULL_COLUMNS = [
   TRAINER_LIST_COLUMNS,
-  "user_id, bio, experience, certifications, clients_helped, availability, reviews_list",
+  "bio, experience, certifications, clients_helped, availability, reviews_list",
 ].join(", ")
 
-/**
- * Fetch all trainers (list view columns only).
- */
 export async function getTrainers(): Promise<{ data: TrainerListItem[]; error: string | null }> {
   const { data, error } = await supabase.from("trainers").select(TRAINER_LIST_COLUMNS)
 
@@ -20,9 +17,6 @@ export async function getTrainers(): Promise<{ data: TrainerListItem[]; error: s
   return { data: normalizeTrainerListItems(data ?? []), error: null }
 }
 
-/**
- * Fetch a single trainer by their numeric ID (full profile columns).
- */
 export async function getTrainerById(
   id: string | number
 ): Promise<{ data: Trainer | null; error: string | null }> {
@@ -37,10 +31,6 @@ export async function getTrainerById(
   return { data: normalizeTrainer(data as unknown as Record<string, unknown>), error: null }
 }
 
-/**
- * Fetch the trainers row that belongs to a given auth user.
- * Returns only the numeric `id` field used for booking / session lookups.
- */
 export async function getTrainerByUserId(
   userId: string
 ): Promise<{ data: Pick<Trainer, "id"> | null; error: string | null }> {
@@ -54,16 +44,14 @@ export async function getTrainerByUserId(
   return { data: data as Pick<Trainer, "id"> | null, error: null }
 }
 
-// ---------------------------------------------------------------------------
-// Internal normalizers — turn raw Supabase rows into typed objects
-// ---------------------------------------------------------------------------
-
 function normalizeTrainerListItems(rows: unknown[]): TrainerListItem[] {
   return rows.map((r) => {
     const row = r as Record<string, unknown>
     return {
       id: row.id as number,
+      user_id: typeof row.user_id === "string" ? row.user_id : null,
       name: typeof row.name === "string" ? row.name : "Trainer",
+      avatar_url: typeof row.avatar_url === "string" ? row.avatar_url : null,
       specialty: typeof row.specialty === "string" ? row.specialty : "",
       rating: typeof row.rating === "number" ? row.rating : 0,
       reviews: typeof row.reviews === "number" ? row.reviews : 0,
@@ -82,6 +70,7 @@ export function normalizeTrainer(row: Record<string, unknown>): Trainer {
     id: row.id as number,
     user_id: (row.user_id as string | null) ?? null,
     name: typeof row.name === "string" ? row.name : "Trainer",
+    avatar_url: typeof row.avatar_url === "string" ? row.avatar_url : null,
     specialty: typeof row.specialty === "string" ? row.specialty : "",
     rating: typeof row.rating === "number" ? row.rating : 0,
     reviews: typeof row.reviews === "number" ? row.reviews : 0,

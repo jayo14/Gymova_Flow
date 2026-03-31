@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabaseClient"
 import type { Profile } from "@/types/profile"
 
+const AVATAR_BUCKET = "avatars"
+
 /**
  * Fetch a single user profile. Safe to call client-side (anon key, subject to RLS).
  */
@@ -30,6 +32,22 @@ export async function upsertProfile(
 
   if (error) return { error: error.message }
   return { error: null }
+}
+
+export async function uploadAvatar(userId: string, file: File): Promise<{ data: string | null; error: string | null }> {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+  const path = `${userId}/${Date.now()}-${safeName}`
+
+  const { error: uploadError } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type })
+
+  if (uploadError) {
+    return { data: null, error: uploadError.message }
+  }
+
+  const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path)
+  return { data: data.publicUrl, error: null }
 }
 
 /**

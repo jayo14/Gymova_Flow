@@ -1,23 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Camera, Mail, Target, Calendar } from "lucide-react"
+import { Camera, Mail, Calendar, Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { getProfile, upsertProfile } from "@/lib/supabase/profiles"
+import { getProfile, upsertProfile, uploadAvatar } from "@/lib/supabase/profiles"
 import type { Profile } from "@/types/profile"
 
 export default function ProfilePage() {
   const { session } = useAuth()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [fullName, setFullName] = useState("")
   const [avatarUrl, setAvatarUrl] = useState("")
+  const [bio, setBio] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -53,6 +56,41 @@ export default function ProfilePage() {
       setIsLoading(false)
     })
   }, [session])
+
+  const triggerAvatarUpload = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !session?.user) return
+
+    setIsUploadingAvatar(true)
+    setError(null)
+    setSuccess(null)
+
+    const { data: nextAvatarUrl, error: uploadError } = await uploadAvatar(session.user.id, file)
+    if (uploadError || !nextAvatarUrl) {
+      setError(uploadError ?? "Failed to upload your avatar.")
+      setIsUploadingAvatar(false)
+      return
+    }
+
+    const { error: saveError } = await upsertProfile(session.user.id, {
+      avatar_url: nextAvatarUrl,
+    })
+
+    if (saveError) {
+      setError(saveError)
+      setIsUploadingAvatar(false)
+      return
+    }
+
+    setAvatarUrl(nextAvatarUrl)
+    setSuccess("Profile photo updated.")
+    setIsUploadingAvatar(false)
+    event.target.value = ""
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -102,9 +140,12 @@ export default function ProfilePage() {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-secondary overflow-hidden flex items-center justify-center">
+              <button
+                type="button"
+                onClick={triggerAvatarUpload}
+                className="w-24 h-24 rounded-full bg-secondary overflow-hidden flex items-center justify-center cursor-pointer"
+              >
                 {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={avatarUrl}
                     alt={fullName || "Profile avatar"}
@@ -115,13 +156,26 @@ export default function ProfilePage() {
                     {fullName ? fullName.charAt(0).toUpperCase() : (session?.user?.email || "?")[0]}
                   </span>
                 )}
-              </div>
+              </button>
               <button
                 type="button"
+                onClick={triggerAvatarUpload}
                 className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center"
+                aria-label="Upload profile photo"
               >
-                <Camera className="w-4 h-4 text-primary-foreground" />
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 text-primary-foreground" />
+                )}
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
             </div>
             <div className="text-center sm:text-left">
               <h2 className="text-xl font-semibold text-card-foreground">
@@ -133,6 +187,9 @@ export default function ProfilePage() {
                   <span>Member since {joinedDate}</span>
                 </p>
               )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Click your avatar or the camera button to upload a new photo.
+              </p>
             </div>
           </div>
         </CardContent>
@@ -167,25 +224,10 @@ export default function ProfilePage() {
                   id="email"
                   value={session?.user?.email ?? ""}
                   readOnly
-                  className="pl-10 bg-input border-border"
+                  aria-readonly="true"
+                  className="pl-10 bg-input border-border text-muted-foreground cursor-not-allowed"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="avatarUrl" className="text-card-foreground">
-                Avatar URL
-              </Label>
-              <Input
-                id="avatarUrl"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://example.com/your-photo.jpg"
-                className="bg-input border-border"
-              />
-              <p className="text-xs text-muted-foreground">
-                Paste a link to an image to use as your profile picture.
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -194,6 +236,8 @@ export default function ProfilePage() {
               </Label>
               <Textarea
                 id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
                 placeholder="Tell trainers about yourself..."
                 className="min-h-[100px] bg-input border-border"
               />
@@ -202,17 +246,8 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-
-            {success && (
-              <p className="text-sm text-emerald-500">
-                {success}
-              </p>
-            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            {success && <p className="text-sm text-emerald-500">{success}</p>}
 
             <div className="flex items-center gap-4">
               <Button
@@ -229,4 +264,3 @@ export default function ProfilePage() {
     </div>
   )
 }
-

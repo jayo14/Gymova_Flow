@@ -1,4 +1,4 @@
-import React from "react"
+import Link from "next/link"
 import { Menu, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -25,10 +25,12 @@ export function DashboardTopNav({
           <h1 className="text-lg font-semibold text-foreground hidden sm:block">{title}</h1>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5 text-muted-foreground" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-          </Button>
+          <Link href="/dashboard/notifications">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+            </Button>
+          </Link>
           {showSignOut && (
             <Button
               variant="outline"

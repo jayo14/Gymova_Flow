@@ -2,6 +2,8 @@ import React from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { X, Dumbbell, ChevronDown, ChevronLeft, ChevronRight, LogOut } from "lucide-react"
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 
 export type DashboardSidebarLink = {
@@ -18,10 +20,19 @@ interface DashboardSidebarProps {
   onToggleCollapsed?: () => void
   userName?: string | null
   userEmail?: string | null
+  avatarUrl?: string | null
   onLogout: () => void
   links: DashboardSidebarLink[]
   title?: string
   signedInAs?: string
+  homeHref?: string
+}
+
+function getInitials(name?: string | null) {
+  if (!name) return "GF"
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return "GF"
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("")
 }
 
 export function DashboardSidebar({
@@ -31,12 +42,16 @@ export function DashboardSidebar({
   onToggleCollapsed,
   userName,
   userEmail,
+  avatarUrl,
   onLogout,
   links,
   title = "GymovaFlow",
   signedInAs,
+  homeHref,
 }: DashboardSidebarProps) {
   const pathname = typeof window !== "undefined" ? window.location.pathname : ""
+  const resolvedHomeHref = homeHref ?? links[0]?.href ?? "/"
+
   return (
     <>
       {isOpen && (
@@ -65,7 +80,7 @@ export function DashboardSidebar({
         )}
         <div className="flex flex-col h-full">
           <div className={cn("flex items-center h-16 border-b border-sidebar-border", collapsed ? "justify-center px-3" : "justify-between px-6")}>
-            <Link href={links[0]?.href || "/"} className="flex items-center gap-2 min-w-0">
+            <Link href={resolvedHomeHref} className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
                 <Dumbbell className="w-5 h-5 text-sidebar-primary-foreground" />
               </div>
@@ -78,9 +93,7 @@ export function DashboardSidebar({
 
           <nav className="flex-1 p-4 space-y-1">
             {links.map((link) => {
-              const isActive =
-                pathname === link.href ||
-                (link.href !== links[0]?.href && pathname.startsWith(link.href))
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
               return (
                 <Link
                   key={link.href}
@@ -118,7 +131,12 @@ export function DashboardSidebar({
               <p className="text-xs text-sidebar-foreground/60 px-4">Signed in as {signedInAs}</p>
             )}
             <div className={cn("flex items-center px-4 py-2", collapsed ? "justify-center" : "gap-3")}>
-              <div className="w-9 h-9 rounded-full bg-sidebar-accent shrink-0" />
+              <Avatar className="h-9 w-9 border border-sidebar-border shrink-0">
+                <AvatarImage src={avatarUrl ?? undefined} alt={userName ?? title} />
+                <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs font-semibold">
+                  {getInitials(userName ?? title)}
+                </AvatarFallback>
+              </Avatar>
               {!collapsed && (
                 <>
                   <div className="flex-1 min-w-0">

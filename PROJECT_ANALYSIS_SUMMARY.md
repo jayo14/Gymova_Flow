@@ -18,7 +18,7 @@
 - `/trainer` — Trainer dashboard home
 - `/trainer/availability` — Trainer weekly schedule editor
 - `/trainer/sessions` — Trainer session list
-- `/admin/login` — Admin sign-in (cookie-based)
+- `/login` — Main sign-in (handles clients, trainers, and admins)
 - `/admin` — Admin dashboard
 - `/admin/applications` — Trainer application review
 - `/admin/users` — User management
@@ -72,7 +72,7 @@
 
 - User auth: Supabase (AuthProvider, login, signup, signOut). Protection is client-side in layouts.
 - Trainer status: lib/trainerAuth.ts (getIsApprovedTrainer, getTrainerStatus) using profiles table.
-- Admin auth: cookie-based in app/admin/actions.ts; middleware protects /admin/* only.
+- Admin auth: Role-based access control (RBAC). Admins log in via the main `/login` page and are protected by middleware checking the `admin` role in the `profiles` table.
 
 ---
 
@@ -86,7 +86,7 @@
 ## 8. API Routes & Server Actions
 
 - No route.ts API routes.
-- Only server code: app/admin/actions.ts (adminLogin, adminLogout) and middleware.ts (admin cookie check).
+- Server code: `app/admin/actions.ts` (admin actions protected by RBAC) and `middleware.ts` (route protection).
 
 ---
 

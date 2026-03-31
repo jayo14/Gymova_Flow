@@ -27,6 +27,7 @@ A modern fitness platform for clients and trainers, built with Next.js, Supabase
 - Booking flow (UI only)
 - Messaging (UI only)
 - AI Coach (mocked)
+- **RBAC Auth**: Integrated Role-Based Access Control via Supabase. Admins and Trainers use the main `/login` flow with automatic dashboard routing.
 - Admin dashboard (users, trainers, applications)
 - Responsive, modern UI (shadcn/ui)
 

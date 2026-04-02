@@ -259,7 +259,7 @@ export function TrainerProfileView({ trainer }: { trainer: Trainer | null | unde
                       </Button>
                     </Link>
 
-                    <Link href="/messages" className="block">
+                    <Link href={`/messages?new_chat=${trainer.id}&name=${encodeURIComponent(trainer.name)}&avatar=${encodeURIComponent(trainer.avatar_url ?? "")}`} className="block">
                       <Button variant="outline" className="w-full border-border text-foreground hover:bg-secondary" size="lg">
                         <MessageCircle className="w-5 h-5 mr-2" />
                         Message Trainer

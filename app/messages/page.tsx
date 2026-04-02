@@ -1,7 +1,7 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import {
   ArrowLeft,
   Check,
@@ -139,17 +139,35 @@ function MessageBubble({
   )
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { session, user, loading } = useAuth()
   const { toast } = useToast()
 
+  const newChatId = searchParams?.get("new_chat")
+  const newChatName = searchParams?.get("name")
+  const newChatAvatar = searchParams?.get("avatar")
+
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
-  const [selectedConversation, setSelectedConversation] = useState<ConversationSummary | null>(null)
+  const [selectedConversation, setSelectedConversation] = useState<ConversationSummary | null>(() => {
+    if (newChatId && newChatName) {
+      return {
+        partnerId: newChatId,
+        partnerName: newChatName,
+        partnerAvatar: newChatAvatar || undefined,
+        lastMessage: "",
+        lastMessageTime: "",
+        unreadCount: 0,
+      }
+    }
+    return null
+  })
+  
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  const [showConversations, setShowConversations] = useState(true)
+  const [showConversations, setShowConversations] = useState(() => !newChatId)
   const [loadingConversations, setLoadingConversations] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
 
@@ -251,6 +269,13 @@ export default function MessagesPage() {
     },
     [toast, user]
   )
+
+  useEffect(() => {
+    if (newChatId && user) {
+      void fetchMessages(newChatId)
+      void markAsRead(newChatId)
+    }
+  }, [newChatId, user, fetchMessages, markAsRead])
 
   const handleSelectConversation = useCallback(
     async (conversation: ConversationSummary) => {
@@ -487,5 +512,17 @@ export default function MessagesPage() {
         </div>
       </div>
     </AthleteDashboardShell>
+  )
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen bg-background flex items-center justify-center">
+        <span className="text-muted-foreground animate-pulse">Loading messaging module...</span>
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
   )
 }

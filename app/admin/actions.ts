@@ -214,11 +214,12 @@ export async function listAiModelConfigs() {
 
   return AI_PROVIDER_CONFIGS.map((config) => {
     const row = existing.get(config.provider)
+    const hasKey = typeof row?.api_key === "string" && row.api_key.trim().length > 0
     return {
       provider: config.provider,
       display_name: row?.display_name ?? config.display_name,
       model_name: row?.model_name ?? config.default_model,
-      api_key: row?.api_key ?? "",
+      api_key: hasKey ? "********" : "", // Masked key for frontend
       is_enabled: row?.is_enabled ?? false,
       updated_at: row?.updated_at ?? null,
       default_model: config.default_model,
@@ -230,6 +231,7 @@ export async function saveAiModelConfig(formData: FormData) {
   await requireAdminSession()
 
   const provider = String(formData.get("provider") ?? "")
+  // Sanitize input: removing whitespace
   const apiKey = String(formData.get("api_key") ?? "").trim()
   const modelName = String(formData.get("model_name") ?? "").trim()
   const config = AI_PROVIDER_CONFIGS.find((item) => item.provider === provider)
@@ -238,12 +240,33 @@ export async function saveAiModelConfig(formData: FormData) {
     return { error: "Unsupported AI provider." }
   }
 
+  // Prevent storing arbitrary long strings which might be an attack vector
+  if (apiKey.length > 500) {
+    return { error: "API key is too long." }
+  }
+  
+  if (modelName.length > 100) {
+    return { error: "Model name is too long." }
+  }
+
+  // Fetch the existing record to see if we need to keep the old key
+  const { data: existingRow } = await supabaseAdmin
+    .from("ai_model_configs")
+    .select("api_key")
+    .eq("provider", provider)
+    .single()
+
+  // If the user submits "********" or empty, we reuse the existing key if we have one.
+  // Otherwise, we accept the new key.
+  const isMaskedOrEmpty = apiKey === "********" || apiKey === ""
+  const finalApiKey = isMaskedOrEmpty ? (existingRow?.api_key ?? "") : apiKey
+
   const { error } = await supabaseAdmin.from("ai_model_configs").upsert(
     {
       provider,
       display_name: config.display_name,
       model_name: modelName || config.default_model,
-      api_key: apiKey,
+      api_key: finalApiKey,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "provider" }

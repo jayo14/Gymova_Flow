@@ -79,7 +79,13 @@ export default async function AIModelsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-muted-foreground">API key</label>
-                  <Input name="api_key" defaultValue={config.api_key} placeholder="Paste API key" className="bg-background border-border" />
+                  <Input 
+                    name="api_key" 
+                    type="password"
+                    defaultValue={config.api_key} 
+                    placeholder={config.api_key ? "Leave blank to keep existing key" : "Paste API key"} 
+                    className="bg-background border-border" 
+                  />
                 </div>
                 <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">Save credentials</Button>
               </form>

@@ -93,8 +93,8 @@ export default function OpenMap({
 }: {
   trainers: TrainerWithDistance[]
   clientLocation: LatLng | null
-  selectedTrainer: number | null
-  onSelectTrainer: (id: number) => void
+  selectedTrainer: string | null
+  onSelectTrainer: (id: string) => void
   routeLine: RouteLine | null
   routeMode: "driving" | "walking"
   onLocationSet: (lat: number, lng: number) => void

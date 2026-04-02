@@ -40,7 +40,7 @@ export default function LoginPage() {
 
       getRoleRedirectPath(session.user.id).then((path) => {
         if (isHandlingSubmit.current) return
-        router.replace(nextPath || path)
+        window.location.href = nextPath || path
       })
     }
   }, [loading, session, router])
@@ -118,7 +118,7 @@ export default function LoginPage() {
     const redirectPath = nextPath || roleRedirectPath
     
     setIsLoading(false)
-    router.replace(redirectPath)
+    window.location.href = redirectPath
   }
 
   if (loading) {

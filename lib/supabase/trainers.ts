@@ -3,7 +3,7 @@ import { ensureAvailability } from "@/lib/supabase/availability"
 import type { Trainer, TrainerListItem, TrainerReview } from "@/types/trainer"
 
 const TRAINER_LIST_COLUMNS =
-  "id, user_id, name, avatar_url, specialty, rating, reviews, price, location, distance, specializations"
+  "id, user_id, name, specialty, rating, reviews, price, location, distance, specializations"
 
 const TRAINER_FULL_COLUMNS = [
   TRAINER_LIST_COLUMNS,

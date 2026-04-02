@@ -212,21 +212,19 @@ export default function BookingPage() {
     let cancelled = false
 
     async function loadAvailability() {
-      const numericTrainerId = Number(trainerId)
-      if (Number.isNaN(numericTrainerId)) {
+      if (!trainerLoading && trainer) {
+        setAvailabilityLoading(true)
+        const { data } = await supabase
+          .from("trainer_availability")
+          .select("day_of_week, start_time, end_time, is_active")
+          .eq("trainer_id", trainer.internal_id)
+
+        if (!cancelled) {
+          setAvailability((data ?? []) as TrainerAvailability[])
+          setAvailabilityLoading(false)
+        }
+      } else if (!trainerLoading) {
         setAvailability([])
-        setAvailabilityLoading(false)
-        return
-      }
-
-      setAvailabilityLoading(true)
-      const { data } = await supabase
-        .from("availability")
-        .select("day_of_week, start_time, end_time, is_active")
-        .eq("trainer_id", numericTrainerId)
-
-      if (!cancelled) {
-        setAvailability((data ?? []) as TrainerAvailability[])
         setAvailabilityLoading(false)
       }
     }
@@ -236,7 +234,7 @@ export default function BookingPage() {
     return () => {
       cancelled = true
     }
-  }, [trainerId])
+  }, [trainer, trainerLoading])
 
   const days = useMemo(
     () => generateCalendarDays(currentYear, currentMonth),
@@ -315,10 +313,7 @@ export default function BookingPage() {
       return
     }
 
-    const numericTrainerId =
-      typeof trainer.id === "string" ? parseInt(trainer.id, 10) : trainer.id
-
-    if (Number.isNaN(numericTrainerId)) {
+    if (!trainer.internal_id) {
       setBookingError("Invalid trainer ID. Please try again.")
       return
     }
@@ -328,8 +323,7 @@ export default function BookingPage() {
 
     const { error } = await createBooking({
       client_id: user.id,
-      trainer_id:
-        typeof trainer.id === "string" ? parseInt(trainer.id, 10) : trainer.id,
+      trainer_id: trainer.internal_id,
       booking_date: selectedDate,
       start_time: startTime,
       end_time: addOneHour(startTime),

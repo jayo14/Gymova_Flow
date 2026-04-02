@@ -25,7 +25,8 @@ export type TrainerLocationWithGym = {
 }
 
 export type TrainerMapEntry = {
-  trainer_id: number
+  trainer_id: string // UUID
+  trainer_internal_id: number
   gym_location_id: string
   trainer_name: string
   avatar: string | null

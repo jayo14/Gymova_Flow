@@ -133,7 +133,7 @@ function TrainerListCard({
 
 export default function MapPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedTrainer, setSelectedTrainer] = useState<number | null>(null)
+  const [selectedTrainer, setSelectedTrainer] = useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(true)
   const [trainers, setTrainers] = useState<TrainerMapEntry[]>([])
   const [loadingTrainers, setLoadingTrainers] = useState(true)

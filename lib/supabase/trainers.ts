@@ -20,10 +20,14 @@ export async function getTrainers(): Promise<{ data: TrainerListItem[]; error: s
 export async function getTrainerById(
   id: string | number
 ): Promise<{ data: Trainer | null; error: string | null }> {
+  // Always query user_id when looking up by the string UUID ID
+  const isUuid = typeof id === "string" && id.includes("-");
+  const column = isUuid ? "user_id" : "id";
+  
   const { data, error } = await supabase
     .from("trainers")
     .select(TRAINER_FULL_COLUMNS)
-    .eq("id", id)
+    .eq(column, id)
     .maybeSingle()
 
   if (error) return { data: null, error: error.message }
@@ -45,29 +49,40 @@ export async function getTrainerByUserId(
 }
 
 function normalizeTrainerListItems(rows: unknown[]): TrainerListItem[] {
-  return rows.map((r) => {
+  const unique = new Map<string, TrainerListItem>()
+  
+  for (const r of rows) {
     const row = r as Record<string, unknown>
-    return {
-      id: row.id as number,
-      user_id: typeof row.user_id === "string" ? row.user_id : null,
-      name: typeof row.name === "string" ? row.name : "Trainer",
-      avatar_url: typeof row.avatar_url === "string" ? row.avatar_url : null,
-      specialty: typeof row.specialty === "string" ? row.specialty : "",
-      rating: typeof row.rating === "number" ? row.rating : 0,
-      reviews: typeof row.reviews === "number" ? row.reviews : 0,
-      price: typeof row.price === "number" ? row.price : 0,
-      location: typeof row.location === "string" ? row.location : "",
-      distance: typeof row.distance === "string" ? row.distance : "",
-      specializations: Array.isArray(row.specializations)
-        ? (row.specializations as string[])
-        : [],
+    const userId = typeof row.user_id === "string" ? row.user_id : String(row.id)
+    
+    if (!unique.has(userId)) {
+      unique.set(userId, {
+        id: userId,
+        internal_id: row.id as number,
+        user_id: typeof row.user_id === "string" ? row.user_id : null,
+        name: typeof row.name === "string" ? row.name : "Trainer",
+        specialty: typeof row.specialty === "string" ? row.specialty : "",
+        rating: typeof row.rating === "number" ? row.rating : 0,
+        reviews: typeof row.reviews === "number" ? row.reviews : 0,
+        price: typeof row.price === "number" ? row.price : 0,
+        location: typeof row.location === "string" ? row.location : "",
+        distance: typeof row.distance === "string" ? row.distance : "",
+        avatar_url: typeof row.avatar_url === "string" ? row.avatar_url : null,
+        specializations: Array.isArray(row.specializations)
+          ? (row.specializations as string[])
+          : [],
+      })
     }
-  })
+  }
+  
+  return Array.from(unique.values())
 }
 
 export function normalizeTrainer(row: Record<string, unknown>): Trainer {
+  const userId = typeof row.user_id === "string" ? row.user_id : String(row.id)
   return {
-    id: row.id as number,
+    id: userId,
+    internal_id: row.id as number,
     user_id: (row.user_id as string | null) ?? null,
     name: typeof row.name === "string" ? row.name : "Trainer",
     avatar_url: typeof row.avatar_url === "string" ? row.avatar_url : null,

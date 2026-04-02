@@ -98,7 +98,8 @@ export async function getTrainerMapEntries(city?: string): Promise<{
   const entries: TrainerMapEntry[] = rows
     .filter((row) => row.trainer !== null && row.gym_location !== null)
     .map((row) => ({
-      trainer_id: row.trainer_id,
+      trainer_id: typeof row.trainer?.user_id === "string" ? row.trainer.user_id : String(row.trainer_id),
+      trainer_internal_id: row.trainer_id,
       gym_location_id: row.gym_location_id,
       trainer_name: row.trainer?.name ?? "Trainer",
       avatar: row.trainer?.user_id ? (profileMap[row.trainer.user_id] ?? null) : null,
@@ -108,11 +109,22 @@ export async function getTrainerMapEntries(city?: string): Promise<{
       latitude: row.gym_location?.latitude ?? 0,
       longitude: row.gym_location?.longitude ?? 0,
     }))
+    
+  // Deduplicate by unique trainer + location to avoid UI map key warnings
+  const uniqueEntries = new Map<string, TrainerMapEntry>()
+  for (const entry of entries) {
+    const key = `${entry.trainer_id}-${entry.gym_location_id}`
+    if (!uniqueEntries.has(key)) {
+      uniqueEntries.set(key, entry)
+    }
+  }
+  
+  const entriesList = Array.from(uniqueEntries.values())
 
   const normalizedCity = city?.trim().toLowerCase()
   const filteredEntries = normalizedCity
-    ? entries.filter((entry) => entry.city.toLowerCase() === normalizedCity)
-    : entries
+    ? entriesList.filter((entry) => entry.city.toLowerCase() === normalizedCity)
+    : entriesList
 
   return { data: filteredEntries, error: null }
 }

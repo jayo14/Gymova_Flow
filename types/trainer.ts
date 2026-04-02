@@ -1,6 +1,7 @@
 /** Subset of Trainer used for list/card views (matches the columns fetched by getTrainers). */
 export type TrainerListItem = {
-  id: number
+  id: string // UUID
+  internal_id: number
   user_id: string | null
   name: string
   avatar_url: string | null
@@ -22,7 +23,8 @@ export type TrainerReview = {
 }
 
 export type Trainer = {
-  id: number
+  id: string // UUID
+  internal_id: number
   user_id: string | null
   name: string
   avatar_url: string | null

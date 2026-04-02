@@ -28,11 +28,10 @@ export async function getTrainerById(
     .from("trainers")
     .select(TRAINER_FULL_COLUMNS)
     .eq(column, id)
-    .maybeSingle()
 
   if (error) return { data: null, error: error.message }
-  if (!data) return { data: null, error: null }
-  return { data: normalizeTrainer(data as unknown as Record<string, unknown>), error: null }
+  if (!data || data.length === 0) return { data: null, error: null }
+  return { data: normalizeTrainer(data[0] as unknown as Record<string, unknown>), error: null }
 }
 
 export async function getTrainerByUserId(

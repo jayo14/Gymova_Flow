@@ -12,6 +12,7 @@ import {
 import { DashboardSidebar, DashboardSidebarLink } from "@/components/dashboard/Sidebar"
 import { DashboardTopNav } from "@/components/dashboard/TopNav"
 import { adminLogout } from "./actions"
+import { supabase } from "@/lib/supabaseClient"
 
 const sidebarLinks: DashboardSidebarLink[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -33,8 +34,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  if (pathname === "/admin/login") {
-    return <>{children}</>
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    void adminLogout()
   }
 
   return (
@@ -44,7 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         onClose={() => setSidebarOpen(false)}
         userName="Admin User"
         userEmail="admin@gymovaflow.com"
-        onLogout={() => void adminLogout()}
+        onLogout={handleLogout}
         links={sidebarLinks}
         title="GymovaFlow"
         signedInAs="admin"
@@ -52,7 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       />
       <DashboardTopNav
         onMenuClick={() => setSidebarOpen(true)}
-        onLogout={() => void adminLogout()}
+        onLogout={handleLogout}
         title={getAdminTitle(pathname)}
       />
       <main className="lg:pl-64 pt-16">

@@ -7,8 +7,6 @@ import { redirect } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 const ADMIN_COOKIE_NAME = "admin_session"
-const DEFAULT_EMAIL = "admin@gymovaflow.com"
-const DEFAULT_PASSWORD = "admin123"
 
 const VALID_ROLES = ["student", "client", "trainer", "admin"] as const
 const VALID_TRAINER_STATUSES = ["pending", "approved", "rejected"] as const
@@ -23,32 +21,27 @@ const AI_PROVIDER_CONFIGS = [
 type ValidRole = (typeof VALID_ROLES)[number]
 type ValidTrainerStatus = (typeof VALID_TRAINER_STATUSES)[number]
 
-function getAdminCredentials() {
-  return {
-    email: process.env.ADMIN_EMAIL ?? DEFAULT_EMAIL,
-    password: process.env.ADMIN_PASSWORD ?? DEFAULT_PASSWORD,
-  }
-}
-
 export async function requireAdminSession() {
   const cookieStore = await cookies()
   const session = cookieStore.get(ADMIN_COOKIE_NAME)?.value
   if (!session) {
-    redirect("/admin/login")
+    redirect("/login")
   }
 }
 
-export async function adminLogin(formData: FormData) {
-  const email = (formData.get("email") as string)?.trim()
-  const password = formData.get("password") as string
+/**
+ * Verify that userId belongs to an admin profile and set the admin session cookie.
+ * Called from the client login page after successful Supabase auth.
+ */
+export async function createAdminSession(userId: string): Promise<{ error?: string }> {
+  const { data: profile, error } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single()
 
-  if (!email || !password) {
-    return { error: "Email and password are required." }
-  }
-
-  const { email: validEmail, password: validPassword } = getAdminCredentials()
-  if (email !== validEmail || password !== validPassword) {
-    return { error: "Invalid email or password." }
+  if (error || profile?.role !== "admin") {
+    return { error: "Not authorized as admin." }
   }
 
   const cookieStore = await cookies()
@@ -60,13 +53,13 @@ export async function adminLogin(formData: FormData) {
     path: "/",
   })
 
-  redirect("/admin")
+  return {}
 }
 
 export async function adminLogout() {
   const cookieStore = await cookies()
   cookieStore.delete(ADMIN_COOKIE_NAME)
-  redirect("/admin/login")
+  redirect("/login")
 }
 
 async function ensureTrainerRecord(userId: string) {

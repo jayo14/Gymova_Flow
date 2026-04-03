@@ -8,16 +8,9 @@ export function proxy(request: NextRequest) {
   if (!pathname.startsWith("/admin")) {
     return NextResponse.next()
   }
-  if (pathname === "/admin/login") {
-    const loggedIn = request.cookies.get(ADMIN_COOKIE_NAME)?.value
-    if (loggedIn) {
-      return NextResponse.redirect(new URL("/admin", request.url))
-    }
-    return NextResponse.next()
-  }
   const loggedIn = request.cookies.get(ADMIN_COOKIE_NAME)?.value
   if (!loggedIn) {
-    return NextResponse.redirect(new URL("/admin/login", request.url))
+    return NextResponse.redirect(new URL("/login", request.url))
   }
   return NextResponse.next()
 }

@@ -11,6 +11,7 @@ import { Dumbbell, Eye, EyeOff, ArrowRight } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getRoleRedirectPath, getTrainerStatus } from "@/lib/trainerAuth"
+import { createAdminSession } from "@/app/admin/actions"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -110,6 +111,24 @@ export default function LoginPage() {
     }
 
     const redirectPath = await getRoleRedirectPath(userId)
+
+    // For admin users, establish the admin session cookie before redirecting.
+    if (redirectPath.startsWith("/admin")) {
+      await createAdminSession(userId)
+    }
+
+    // Check onboarding completion for non-admin users.
+    if (!redirectPath.startsWith("/admin")) {
+      const onboardingCompleted =
+        (data.user.user_metadata as { onboarding_completed?: boolean } | undefined)
+          ?.onboarding_completed === true
+      if (!onboardingCompleted) {
+        setIsLoading(false)
+        router.replace("/onboarding")
+        return
+      }
+    }
+
     setIsLoading(false)
     router.replace(redirectPath)
   }
@@ -216,6 +235,13 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">
+              Sign up
+            </Link>
+          </p>
         </div>
       </div>
     </div>

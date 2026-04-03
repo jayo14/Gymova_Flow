@@ -88,7 +88,7 @@ export default function OnboardingPage() {
       primary_goal: primaryGoal,
       experience_level: experienceLevel,
       preferred_training_style: trainingStyle,
-      workout_days_per_week: workoutDays ? parseInt(workoutDays) : null,
+      workout_days_per_week: workoutDays ? parseInt(workoutDays, 10) : null,
       notes: notes || null,
     })
 

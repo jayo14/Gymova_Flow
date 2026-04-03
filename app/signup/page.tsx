@@ -101,9 +101,12 @@ export default function SignupPage() {
 
       if (accountType === "client" && data.session) {
         // Create profile immediately when session is available (email confirmation disabled).
-        await supabase
+        const { error: profileError } = await supabase
           .from("profiles")
           .upsert({ id: userId, full_name: fullName, role: "client" }, { onConflict: "id" })
+        if (profileError) {
+          console.error("Error creating client profile", profileError)
+        }
         router.replace("/onboarding")
       } else {
         // Email confirmation is enabled — redirect to verify email first.

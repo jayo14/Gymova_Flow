@@ -1,4 +1,4 @@
-export const resetPasswordEmail = (resetLink: string) => `
+export const resetPasswordEmail = (resetLink: string, fromEmail = "noreply@mail.gymovaflow.com") => `
 <!DOCTYPE html>
 <html>
   <head>
@@ -47,7 +47,7 @@ export const resetPasswordEmail = (resetLink: string) => `
             <tr>
               <td style="padding:20px 40px;border-top:1px solid #222222;">
                 <p style="margin:0;font-size:12px;color:#52525b;text-align:center;">
-                  &copy; ${new Date().getFullYear()} GymovaFlow &bull; ${process.env.EMAIL_FROM ?? "noreply@mail.gymovaflow.com"}
+                  &copy; ${new Date().getFullYear()} GymovaFlow &bull; ${fromEmail}
                 </p>
               </td>
             </tr>

@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         .upsert({ id: user.id, full_name: fullName, role: "client" }, { onConflict: "id" })
 
       // Send welcome email.
-      const firstName = fullName.split(" ")[0] || fullName || "there"
+      const firstName = fullName.split(" ")[0] || "there"
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gymovaflow.com"
       await sendEmail({
         to: email,

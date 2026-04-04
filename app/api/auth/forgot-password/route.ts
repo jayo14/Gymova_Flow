@@ -11,8 +11,9 @@ function hashToken(token: string): string {
 function getBaseUrl(request: NextRequest): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
   if (configured && configured.length > 0) return configured.replace(/\/$/, "")
+  const proto = request.headers.get("x-forwarded-proto") ?? "https"
   const host = request.headers.get("host") ?? "localhost:3000"
-  const protocol = host.startsWith("localhost") ? "http" : "https"
+  const protocol = host.startsWith("localhost") ? "http" : proto
   return `${protocol}://${host}`
 }
 
@@ -85,11 +86,12 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = getBaseUrl(request)
     const resetLink = `${baseUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`
+    const emailFrom = process.env.EMAIL_FROM ?? "noreply@mail.gymovaflow.com"
 
     await sendEmail({
       to: email,
       subject: "Reset your GymovaFlow password",
-      html: resetPasswordEmail(resetLink),
+      html: resetPasswordEmail(resetLink, emailFrom),
     })
 
     return NextResponse.json({ success: true })

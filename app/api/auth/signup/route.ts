@@ -99,10 +99,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Send verification email via Resend.
+    const emailFrom = process.env.EMAIL_FROM ?? "noreply@mail.gymovaflow.com"
     await sendEmail({
       to: email,
       subject: "Verify your GymovaFlow account",
-      html: verificationEmail(otp),
+      html: verificationEmail(otp, emailFrom),
     })
 
     return NextResponse.json({ success: true, userId })

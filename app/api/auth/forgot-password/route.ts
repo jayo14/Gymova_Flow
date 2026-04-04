@@ -16,6 +16,14 @@ function getBaseUrl(request: NextRequest): string {
   return `${protocol}://${host}`
 }
 
+async function getUserByEmail(email: string) {
+  const { data } = await supabaseAdmin.rpc("get_auth_user_by_email", {
+    p_email: email.toLowerCase(),
+  })
+  if (!data || (Array.isArray(data) && data.length === 0)) return null
+  return Array.isArray(data) ? data[0] : data
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -25,11 +33,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required field: email" }, { status: 400 })
     }
 
-    // Find user — respond generically to avoid email enumeration.
-    const { data: listData } = await supabaseAdmin.auth.admin.listUsers()
-    const user = listData?.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    )
+    // Find user via efficient DB function — respond generically to avoid email enumeration.
+    const user = await getUserByEmail(email)
 
     if (!user) {
       return NextResponse.json({ success: true })

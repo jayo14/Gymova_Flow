@@ -8,6 +8,14 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex")
 }
 
+async function getUserByEmail(email: string) {
+  const { data } = await supabaseAdmin.rpc("get_auth_user_by_email", {
+    p_email: email.toLowerCase(),
+  })
+  if (!data || (Array.isArray(data) && data.length === 0)) return null
+  return Array.isArray(data) ? data[0] : data
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -17,18 +25,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required field: email" }, { status: 400 })
     }
 
-    // Find the user by email.
-    const { data: listData, error: listError } =
-      await supabaseAdmin.auth.admin.listUsers()
-
-    if (listError) {
-      console.error("Failed to list users:", listError)
-      return NextResponse.json({ error: "Could not resend code." }, { status: 500 })
-    }
-
-    const user = listData.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    )
+    // Look up the user by email via efficient DB function.
+    const user = await getUserByEmail(email)
 
     if (!user) {
       // Return success to avoid user enumeration.

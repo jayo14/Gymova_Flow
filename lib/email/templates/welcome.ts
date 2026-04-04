@@ -1,4 +1,4 @@
-export const welcomeEmail = (firstName: string) => `
+export const welcomeEmail = (firstName: string, siteUrl = "https://gymovaflow.com") => `
 <!DOCTYPE html>
 <html>
   <head>
@@ -31,7 +31,7 @@ export const welcomeEmail = (firstName: string) => `
                   trainers, book sessions, and start your transformation today.
                 </p>
                 <div style="text-align:center;margin-bottom:24px;">
-                  <a href="${process.env.NEXT_PUBLIC_SITE_URL ?? "https://gymovaflow.com"}/login"
+                  <a href="${siteUrl.replace(/\/$/, "")}/login"
                     style="display:inline-block;background-color:#ffffff;color:#0a0a0a;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
                     Sign In &amp; Get Started
                   </a>

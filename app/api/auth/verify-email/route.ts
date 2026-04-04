@@ -8,6 +8,21 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex")
 }
 
+interface AuthUserRow {
+  id: string
+  email: string
+  email_confirmed_at: string | null
+  raw_user_meta_data: Record<string, unknown>
+}
+
+async function getUserByEmail(email: string): Promise<AuthUserRow | null> {
+  const { data, error } = await supabaseAdmin.rpc("get_auth_user_by_email", {
+    p_email: email.toLowerCase(),
+  })
+  if (error || !data || (Array.isArray(data) && data.length === 0)) return null
+  return Array.isArray(data) ? (data[0] as AuthUserRow) : (data as AuthUserRow)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -20,18 +35,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Look up the user by email.
-    const { data: listData, error: listError } =
-      await supabaseAdmin.auth.admin.listUsers()
-
-    if (listError) {
-      console.error("Failed to list users:", listError)
-      return NextResponse.json({ error: "Verification failed." }, { status: 500 })
-    }
-
-    const user = listData.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    )
+    // Look up the user by email via efficient DB function.
+    const user = await getUserByEmail(email)
 
     if (!user) {
       return NextResponse.json(
@@ -92,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     // Determine account type from user metadata.
     const accountType =
-      (user.user_metadata as { account_type?: string } | undefined)?.account_type ===
+      (user.raw_user_meta_data as { account_type?: string } | undefined)?.account_type ===
       "trainer"
         ? "trainer"
         : "client"
@@ -100,7 +105,7 @@ export async function POST(request: NextRequest) {
     // For clients: ensure their profile row exists.
     if (accountType === "client") {
       const fullName =
-        (user.user_metadata as { full_name?: string } | undefined)?.full_name ||
+        (user.raw_user_meta_data as { full_name?: string } | undefined)?.full_name ||
         email.split("@")[0]
 
       await supabaseAdmin
@@ -109,10 +114,11 @@ export async function POST(request: NextRequest) {
 
       // Send welcome email.
       const firstName = fullName.split(" ")[0] || fullName || "there"
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gymovaflow.com"
       await sendEmail({
         to: email,
         subject: "Welcome to GymovaFlow! 🎉",
-        html: welcomeEmail(firstName),
+        html: welcomeEmail(firstName, siteUrl),
       }).catch((err) => console.error("Welcome email failed (non-fatal):", err))
     }
 

@@ -16,8 +16,6 @@ import {
   User,
   Briefcase,
 } from "lucide-react"
-import { supabase } from "@/lib/supabaseClient"
-
 export default function SignupPage() {
   const router = useRouter()
   const { session, loading } = useAuth()
@@ -62,56 +60,28 @@ export default function SignupPage() {
     try {
       const fullName = `${firstName} ${lastName}`.trim()
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            account_type: accountType,
-            onboarding_completed: false,
-          },
-        },
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, fullName, accountType }),
       })
 
-      if (signUpError) {
-        const msg = signUpError.message
-        const isRateLimit =
-          msg?.toLowerCase().includes("rate limit") ||
-          msg?.toLowerCase().includes("rate_limit") ||
-          signUpError.status === 429
-        if (isRateLimit) {
-          setError(
-            "Too many signup emails sent recently. Please wait 30–60 minutes and try again."
-          )
-        } else {
-          setError(msg)
-        }
+      const json = await res.json()
+
+      if (!res.ok) {
+        const msg: string = json?.error ?? "Something went wrong."
+        const isRateLimit = res.status === 429
+        setError(
+          isRateLimit
+            ? "Too many signup attempts. Please wait a moment and try again."
+            : msg
+        )
         isSubmittingRef.current = false
         return
       }
 
-      const userId = data.user?.id
-
-      if (!userId) {
-        setError("Signup succeeded but no user ID was returned. Please try again.")
-        isSubmittingRef.current = false
-        return
-      }
-
-      if (accountType === "client" && data.session) {
-        // Create profile immediately when session is available (email confirmation disabled).
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({ id: userId, full_name: fullName, role: "client" }, { onConflict: "id" })
-        if (profileError) {
-          console.error("Error creating client profile", profileError)
-        }
-        router.replace("/onboarding")
-      } else {
-        // Email confirmation is enabled — redirect to verify email first.
-        router.replace(`/verify-email?email=${encodeURIComponent(email)}&type=${accountType}`)
-      }
+      // Redirect to email verification regardless of account type.
+      router.replace(`/verify-email?email=${encodeURIComponent(email)}&type=${accountType}`)
     } catch (err) {
       console.error("Unexpected error during signup", err)
       setError("Something went wrong while creating your account. Please try again.")

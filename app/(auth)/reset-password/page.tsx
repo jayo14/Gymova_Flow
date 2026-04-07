@@ -1,19 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ArrowRight, Dumbbell, Eye, EyeOff } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/components/auth/AuthProvider"
-import { supabase } from "@/lib/supabaseClient"
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter()
-  const { session, loading } = useAuth()
+  const searchParams = useSearchParams()
+
+  const token = searchParams.get("token") ?? ""
+  const email = searchParams.get("email") ?? ""
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -21,40 +22,6 @@ export default function ResetPasswordPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [hasRecoverySession, setHasRecoverySession] = useState(false)
-
-  useEffect(() => {
-    if (loading) return
-
-    if (session?.user) {
-      setHasRecoverySession(true)
-      return
-    }
-
-    let active = true
-
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession()
-      if (!active) return
-      setHasRecoverySession(Boolean(data.session?.user))
-    }
-
-    void checkSession()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, newSession) => {
-      if (!active) return
-      if (event === "PASSWORD_RECOVERY" || Boolean(newSession?.user)) {
-        setHasRecoverySession(true)
-      }
-    })
-
-    return () => {
-      active = false
-      subscription.unsubscribe()
-    }
-  }, [loading, session])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,8 +30,8 @@ export default function ResetPasswordPage() {
     setError(null)
     setSuccess(null)
 
-    if (!hasRecoverySession) {
-      setError("This reset link is invalid or expired. Request a new one.")
+    if (!token || !email) {
+      setError("This reset link is invalid or expired. Please request a new one.")
       return
     }
 
@@ -81,14 +48,20 @@ export default function ResetPasswordPage() {
     setSubmitting(true)
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password })
-      if (updateError) {
-        setError(updateError.message)
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, token, password }),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        setError(json?.error ?? "Could not update password. Please try again.")
         return
       }
 
       setSuccess("Password updated successfully. Redirecting to login...")
-      await supabase.auth.signOut()
       setTimeout(() => {
         router.replace("/login?reset=success")
       }, 900)
@@ -156,7 +129,7 @@ export default function ResetPasswordPage() {
           />
         </div>
 
-        {!hasRecoverySession && !loading && (
+        {!token && (
           <p className="text-sm text-amber-600">
             Open this page from the reset link sent to your email.
           </p>
@@ -167,7 +140,7 @@ export default function ResetPasswordPage() {
         <Button
           type="submit"
           className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
-          disabled={submitting || loading || !password || !confirmPassword}
+          disabled={submitting || !password || !confirmPassword}
         >
           {submitting ? "Updating..." : (
             <span className="flex items-center gap-2">
@@ -183,5 +156,21 @@ export default function ResetPasswordPage() {
         Back to login
       </Link>
     </div>
+  )
+}
+
+function ResetPasswordFallback() {
+  return (
+    <div className="w-full max-w-md space-y-8">
+      <span className="text-muted-foreground">Loading...</span>
+    </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<ResetPasswordFallback />}>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }

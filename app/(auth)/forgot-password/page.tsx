@@ -7,13 +7,6 @@ import { ArrowLeft, ArrowRight, Dumbbell, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { supabase } from "@/lib/supabaseClient"
-
-function getResetRedirectUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
-  const base = configured && configured.length > 0 ? configured : window.location.origin
-  return `${base.replace(/\/$/, "")}/reset-password`
-}
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -30,12 +23,16 @@ export default function ForgotPasswordPage() {
     setSuccess(null)
 
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: getResetRedirectUrl(),
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
       })
 
-      if (resetError) {
-        setError(resetError.message)
+      const json = await res.json()
+
+      if (!res.ok) {
+        setError(json?.error ?? "Unable to send reset email right now. Please try again.")
         return
       }
 

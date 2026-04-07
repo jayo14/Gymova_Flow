@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [resetSuccess, setResetSuccess] = useState(false)
+  const [verifiedSuccess, setVerifiedSuccess] = useState(false)
   const isHandlingSubmit = useRef(false)
 
   useEffect(() => {
@@ -48,10 +49,13 @@ export default function LoginPage() {
     if (typeof window === "undefined") return
     const params = new URLSearchParams(window.location.search)
     const isResetSuccess = params.get("reset") === "success"
+    const isVerified = params.get("verified") === "true"
     setResetSuccess(isResetSuccess)
+    setVerifiedSuccess(isVerified)
 
-    if (isResetSuccess) {
-      params.delete("reset")
+    if (isResetSuccess || isVerified) {
+      if (isResetSuccess) params.delete("reset")
+      if (isVerified) params.delete("verified")
       const nextQuery = params.toString()
       const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`
       window.history.replaceState({}, "", nextUrl)
@@ -214,6 +218,11 @@ export default function LoginPage() {
             {resetSuccess && !error && (
               <p className="text-sm text-emerald-500">
                 Password reset successful. Please sign in with your new password.
+              </p>
+            )}
+            {verifiedSuccess && !error && !resetSuccess && (
+              <p className="text-sm text-emerald-500">
+                Email verified! Please sign in to continue.
               </p>
             )}
 

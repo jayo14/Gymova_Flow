@@ -8,7 +8,6 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Dumbbell, Mail, RefreshCw } from "
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { supabase } from "@/lib/supabaseClient"
 
 function VerifyEmailContent() {
   const router = useRouter()
@@ -35,65 +34,28 @@ function VerifyEmailContent() {
     setLoading(true)
 
     try {
-      // Supabase signup confirmations use `signup`; some projects use `email` OTP style.
-      let verificationError: string | null = null
-
-      const signupAttempt = await supabase.auth.verifyOtp({
-        email,
-        token: otp.trim(),
-        type: "signup",
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, token: otp.trim() }),
       })
 
-      if (signupAttempt.error) {
-        const emailAttempt = await supabase.auth.verifyOtp({
-          email,
-          token: otp.trim(),
-          type: "email",
-        })
+      const json = await res.json()
 
-        if (emailAttempt.error) {
-          verificationError = emailAttempt.error.message
-        }
-      }
-
-      if (verificationError) {
-        setError(verificationError)
+      if (!res.ok) {
+        setError(json?.error ?? "Verification failed. Please try again.")
         return
       }
 
-      const { data: userData } = await supabase.auth.getUser()
-      const user = userData.user
+      const accountType: "client" | "trainer" = json.accountType ?? type
 
-      if (!user) {
-        setError("Verification succeeded, but user session was not found. Please sign in.")
-        return
+      if (accountType === "trainer") {
+        setSuccess("Email verified. Redirecting to application status...")
+        router.replace("/trainer-pending")
+      } else {
+        setSuccess("Email verified! Please sign in to continue.")
+        router.replace("/login?verified=true")
       }
-
-      if (type === "client") {
-        const fullName =
-          (user.user_metadata as { full_name?: string } | undefined)?.full_name ||
-          user.email?.split("@")[0] ||
-          "Client"
-
-        // Ensure client profile exists after confirmation in projects with email-confirm enabled.
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({ id: user.id, full_name: fullName, role: "client" }, { onConflict: "id" })
-
-        if (profileError) {
-          setError("Email verified, but profile setup failed. Please contact support.")
-          return
-        }
-
-        setSuccess("Email verified. Redirecting to dashboard...")
-        router.replace("/dashboard")
-        return
-      }
-
-      // Keep trainer flow intact: verified trainer still waits for admin approval.
-      await supabase.auth.signOut()
-      setSuccess("Email verified. Redirecting to trainer application status...")
-      router.replace("/trainer-pending")
     } catch {
       setError("Verification failed. Please try again.")
     } finally {
@@ -112,13 +74,16 @@ function VerifyEmailContent() {
     setResendLoading(true)
 
     try {
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email,
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       })
 
-      if (resendError) {
-        setError(resendError.message)
+      const json = await res.json()
+
+      if (!res.ok) {
+        setError(json?.error ?? "Could not resend verification code. Please try again.")
         return
       }
 

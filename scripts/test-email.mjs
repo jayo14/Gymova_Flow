@@ -15,8 +15,8 @@
 import { Resend } from "resend"
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const RESEND_API_KEY = process.env.RESEND_API_KEY
-const TEST_EMAIL = process.env.TEST_EMAIL
+const RESEND_API_KEY = "dumm API key"
+const TEST_EMAIL = "johnayobami77@proton.me"
 
 if (!RESEND_API_KEY) {
   console.error("❌  RESEND_API_KEY is not set.")

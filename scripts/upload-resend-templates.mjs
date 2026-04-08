@@ -17,7 +17,7 @@
 import { Resend } from "resend"
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const RESEND_API_KEY = process.env.RESEND_API_KEY
+const RESEND_API_KEY = "dummy API"
 
 if (!RESEND_API_KEY) {
   console.error("❌  RESEND_API_KEY is not set.")

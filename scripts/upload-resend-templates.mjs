@@ -17,7 +17,7 @@
 import { Resend } from "resend"
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const RESEND_API_KEY = "dummy API"
+const RESEND_API_KEY = "dummy"
 
 if (!RESEND_API_KEY) {
   console.error("❌  RESEND_API_KEY is not set.")
@@ -116,7 +116,7 @@ function wrapEmail(title, bodyHtml) {
 }
 
 // ── Template definitions ─────────────────────────────────────────────────────
-// Variable placeholders use {{variable_name}} syntax supported by Resend templates.
+// Variable placeholders use {{{variable_name}}} syntax supported by Resend templates.
 const templates = [
   {
     name: "gymova-verification",
@@ -133,7 +133,7 @@ const templates = [
       <p style="margin:0 0 8px;font-size:15px;color:#a0a0a0;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         Enter the code below to confirm your email and activate your GymovaFlow account.
       </p>
-      ${otpBox("{{otp}}")}
+      ${otpBox("{{{otp}}}")}
       <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         This code expires in <strong style="color:#a0a0a0;">15 minutes</strong>.
       </p>
@@ -155,7 +155,7 @@ const templates = [
   <tr>
     <td style="padding:40px 40px 32px;">
       <h1 style="margin:0 0 12px;font-size:24px;font-weight:700;color:#f9f9f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        Welcome, {{first_name}}! 🎉
+        Welcome, {{{first_name}}}! 🎉
       </h1>
       <p style="margin:0 0 16px;font-size:15px;color:#a0a0a0;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         Your email has been verified and your GymovaFlow account is ready.
@@ -164,7 +164,7 @@ const templates = [
         You're now part of a community that's redefining fitness. Browse certified personal
         trainers, book sessions, and start your transformation today.
       </p>
-      ${ctaButton("{{login_url}}", "Sign In &amp; Get Started")}
+      ${ctaButton("{{{login_url}}}", "Sign In &amp; Get Started")}
     </td>
   </tr>`,
     ),
@@ -189,7 +189,7 @@ const templates = [
         We received a request to reset the password for your GymovaFlow account.
         Click the button below to set a new password.
       </p>
-      ${ctaButton("{{reset_link}}", "Reset Password")}
+      ${ctaButton("{{{reset_link}}}", "Reset Password")}
       <p style="margin:24px 0 8px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         This link expires in <strong style="color:#a0a0a0;">1 hour</strong>.
       </p>
@@ -197,7 +197,7 @@ const templates = [
         If you did not request a password reset, you can safely ignore this email.
       </p>
       <p style="margin:0;font-size:12px;color:#6b7280;word-break:break-all;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        Or copy this link: <a href="{{reset_link}}" style="color:#a0a0a0;">{{reset_link}}</a>
+        Or copy this link: <a href="{{{reset_link}}}" style="color:#a0a0a0;">{{{reset_link}}}</a>
       </p>
     </td>
   </tr>`,
@@ -217,7 +217,7 @@ const templates = [
     <td style="padding:40px 40px 32px;">
       <p style="margin:0 0 16px;">${infoBadge("Application Approved", "#a3e635")}</p>
       <h1 style="margin:0 0 12px;font-size:24px;font-weight:700;color:#f9f9f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        Congratulations, {{trainer_name}}! 🎉
+        Congratulations, {{{trainer_name}}}! 🎉
       </h1>
       <p style="margin:0 0 16px;font-size:15px;color:#a0a0a0;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         We're thrilled to let you know that your trainer application has been <strong style="color:#a3e635;">approved</strong>.
@@ -226,7 +226,7 @@ const templates = [
       <p style="margin:0 0 28px;font-size:15px;color:#a0a0a0;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         Head to your trainer dashboard to complete your profile, set your availability, and start accepting clients.
       </p>
-      ${ctaButton("{{dashboard_url}}", "Go to Trainer Dashboard")}
+      ${ctaButton("{{{dashboard_url}}}", "Go to Trainer Dashboard")}
       <p style="margin:24px 0 0;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         If you have any questions, simply reply to this email and our team will be happy to help.
       </p>
@@ -249,7 +249,7 @@ const templates = [
     <td style="padding:40px 40px 32px;">
       <p style="margin:0 0 16px;">${infoBadge("Application Not Approved", "#c0392b")}</p>
       <h1 style="margin:0 0 12px;font-size:24px;font-weight:700;color:#f9f9f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        Hi {{trainer_name}},
+        Hi {{{trainer_name}}},
       </h1>
       <p style="margin:0 0 16px;font-size:15px;color:#a0a0a0;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         Thank you for applying to become a trainer on GymovaFlow. After careful review, we're
@@ -259,7 +259,7 @@ const templates = [
         This decision may be due to incomplete information or requirements that weren't met in this
         submission. You're welcome to update your details and reapply at any time.
       </p>
-      ${ctaButton("{{reapply_url}}", "Update &amp; Reapply")}
+      ${ctaButton("{{{reapply_url}}}", "Update &amp; Reapply")}
       <p style="margin:24px 0 0;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         If you believe this is a mistake or would like more details, please reply to this email and our team will be happy to assist.
       </p>

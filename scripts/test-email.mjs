@@ -15,7 +15,7 @@
 import { Resend } from "resend"
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const RESEND_API_KEY = "dumm API key"
+const RESEND_API_KEY = "dummy"
 const TEST_EMAIL = "johnayobami77@proton.me"
 
 if (!RESEND_API_KEY) {

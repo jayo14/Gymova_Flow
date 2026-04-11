@@ -24,26 +24,35 @@ export interface SendEmailOptions {
 
 export const sendEmail = async ({ to, subject, html, replyTo }: SendEmailOptions) => {
   const resend = getResendClient()
-  const from = process.env.EMAIL_FROM ?? DEFAULT_FROM
+  
+  // Normalize 'from' address. Resend prefers "Name <email@domain.com>" format.
+  // If EMAIL_FROM is just an email, wrap it with the default name.
+  let from = process.env.EMAIL_FROM ?? DEFAULT_FROM
+  if (!from.includes("<") && from.includes("@")) {
+    from = `GymovaFlow <${from}>`
+  }
+
+  // Ensure 'to' is an array of trimmed email strings.
+  const recipientList = (Array.isArray(to) ? to : [to]).map(e => e.trim())
 
   try {
     const response = await resend.emails.send({
       from,
-      to: Array.isArray(to) ? to : [to],
+      to: recipientList,
       subject,
       html,
       ...(replyTo ? { reply_to: replyTo } : {}),
     })
 
     if (response.error) {
-      console.error("[Resend] API error:", response.error)
+      console.error("[Resend] API error detail:", JSON.stringify(response.error, null, 2))
       throw new Error(response.error.message)
     }
 
-    console.log(`[Resend] Email sent to ${Array.isArray(to) ? to.join(", ") : to} — id: ${response.data?.id}`)
+    console.log(`[Resend] Email successfully queued — ID: ${response.data?.id} — Recipient: ${recipientList.join(", ")}`)
     return response
   } catch (error) {
-    console.error("[Resend] sendEmail threw:", error)
+    console.error("[Resend] sendEmail failed critically:", error)
     throw error
   }
 }

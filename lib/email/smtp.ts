@@ -20,8 +20,12 @@ export const sendEmailSmtp = async ({
   html: string
 }) => {
   try {
+    const from = process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes("<")
+      ? `GymovaFlow <${process.env.EMAIL_FROM}>`
+      : process.env.EMAIL_FROM
+
     const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from,
       to,
       subject,
       html,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, ArrowRight, Dumbbell, Mail } from "lucide-react"
 
@@ -13,10 +13,19 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return
+    if (!email.trim() || cooldown > 0) return
 
     setLoading(true)
     setError(null)
@@ -33,10 +42,15 @@ export default function ForgotPasswordPage() {
 
       if (!res.ok) {
         setError(json?.error ?? "Unable to send reset email right now. Please try again.")
+        // If it was a rate limit error, we might want to trigger the cooldown anyway if the backend says so
+        if (res.status === 429) {
+          setCooldown(60)
+        }
         return
       }
 
       setSuccess("If an account exists for this email, we sent a password reset link.")
+      setCooldown(60) // 1 minute cooldown
     } catch {
       setError("Unable to send reset email right now. Please try again.")
     } finally {
@@ -85,9 +99,13 @@ export default function ForgotPasswordPage() {
         <Button
           type="submit"
           className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
-          disabled={loading || !email.trim()}
+          disabled={loading || !email.trim() || cooldown > 0}
         >
-          {loading ? "Sending..." : (
+          {loading ? (
+            "Sending..."
+          ) : cooldown > 0 ? (
+            `Try again in ${cooldown}s`
+          ) : (
             <span className="flex items-center gap-2">
               Send Reset Link
               <ArrowRight className="h-4 w-4" />

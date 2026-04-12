@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Dumbbell, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { supabase } from "@/lib/supabaseClient"
 
 function ResetPasswordContent() {
   const router = useRouter()
@@ -30,11 +31,6 @@ function ResetPasswordContent() {
     setError(null)
     setSuccess(null)
 
-    if (!token || !email) {
-      setError("This reset link is invalid or expired. Please request a new one.")
-      return
-    }
-
     if (password.length < 8) {
       setError("Password must be at least 8 characters long.")
       return
@@ -48,17 +44,33 @@ function ResetPasswordContent() {
     setSubmitting(true)
 
     try {
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, token, password }),
-      })
+      if (token && email) {
+        const res = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, token, password }),
+        })
 
-      const json = await res.json()
+        const json = await res.json()
 
-      if (!res.ok) {
-        setError(json?.error ?? "Could not update password. Please try again.")
-        return
+        if (!res.ok) {
+          setError(json?.error ?? "Could not update password. Please try again.")
+          return
+        }
+      } else {
+        const { data, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError || !data.session) {
+          setError("This reset link is invalid or expired. Please request a new one.")
+          return
+        }
+
+        const { error: updateError } = await supabase.auth.updateUser({ password })
+        if (updateError) {
+          setError(updateError.message || "Could not update password. Please try again.")
+          return
+        }
+
+        await supabase.auth.signOut()
       }
 
       setSuccess("Password updated successfully. Redirecting to login...")
@@ -129,9 +141,9 @@ function ResetPasswordContent() {
           />
         </div>
 
-        {!token && (
+        {!token && !email && (
           <p className="text-sm text-amber-600">
-            Open this page from the reset link sent to your email.
+            Open this page from the reset link sent to your email, then submit your new password.
           </p>
         )}
         {error && <p className="text-sm text-destructive">{error}</p>}

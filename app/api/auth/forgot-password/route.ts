@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createHash, randomBytes } from "crypto"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
-import { sendEmail } from "@/lib/email/resend"
-import { resetPasswordEmail } from "@/lib/email/templates"
-
-function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex")
-}
 
 function getBaseUrl(request: NextRequest): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
@@ -17,12 +10,8 @@ function getBaseUrl(request: NextRequest): string {
   return `${protocol}://${host}`
 }
 
-async function getUserByEmail(email: string) {
-  const { data } = await supabaseAdmin.rpc("get_auth_user_by_email", {
-    p_email: email.toLowerCase(),
-  })
-  if (!data || (Array.isArray(data) && data.length === 0)) return null
-  return Array.isArray(data) ? data[0] : data
+function isSupabaseEmailRateLimitError(error: { status?: number; code?: string } | null | undefined): boolean {
+  return error?.status === 429 || error?.code === "over_email_send_rate_limit"
 }
 
 export async function POST(request: NextRequest) {
@@ -34,65 +23,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required field: email" }, { status: 400 })
     }
 
-    // Find user via efficient DB function — respond generically to avoid email enumeration.
-    const user = await getUserByEmail(email)
+    const baseUrl = getBaseUrl(request)
+    
+    // We use Supabase's built-in resetPasswordForEmail now that SMTP is configured in Supabase.
+    // This handles token generation, expiration, and rate limiting automatically.
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+      redirectTo: `${baseUrl}/reset-password`,
+    })
 
-    if (!user) {
-      return NextResponse.json({ success: true })
-    }
-
-    // Rate-limit: one reset request per minute per user.
-    const { data: existing } = await supabaseAdmin
-      .from("auth_tokens")
-      .select("created_at")
-      .eq("user_id", user.id)
-      .eq("type", "reset")
-      .order("created_at", { ascending: false })
-      .limit(1)
-
-    if (existing && existing.length > 0) {
-      const lastSent = new Date(existing[0].created_at).getTime()
-      if (Date.now() - lastSent < 60 * 1000) {
+    if (error) {
+      if (isSupabaseEmailRateLimitError(error)) {
         return NextResponse.json(
           { error: "Please wait at least 1 minute before requesting another reset link." },
           { status: 429 }
         )
       }
-    }
-
-    // Delete old reset tokens for this user.
-    await supabaseAdmin
-      .from("auth_tokens")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("type", "reset")
-
-    // Generate a secure random 32-byte hex token.
-    const rawToken = randomBytes(32).toString("hex")
-    const hashedToken = hashToken(rawToken)
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
-
-    const { error: tokenError } = await supabaseAdmin.from("auth_tokens").insert({
-      user_id: user.id,
-      token: hashedToken,
-      type: "reset",
-      expires_at: expiresAt.toISOString(),
-    })
-
-    if (tokenError) {
-      console.error("Token insert failed:", tokenError)
+      console.error("[forgot-password] Supabase reset password request failed:", error)
       return NextResponse.json({ error: "Could not send reset link." }, { status: 500 })
     }
-
-    const baseUrl = getBaseUrl(request)
-    const resetLink = `${baseUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`
-    const emailFrom = process.env.EMAIL_FROM ?? "noreply@mail.gymovaflow.com"
-
-    await sendEmail({
-      to: email,
-      subject: "Reset your GymovaFlow password",
-      html: resetPasswordEmail(resetLink, emailFrom),
-    })
 
     return NextResponse.json({ success: true })
   } catch (err) {

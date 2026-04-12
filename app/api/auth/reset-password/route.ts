@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createHash } from "crypto"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { getUserByEmail } from "@/lib/getUserByEmail"
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex")
-}
-
-async function getUserByEmail(email: string) {
-  const { data } = await supabaseAdmin.rpc("get_auth_user_by_email", {
-    p_email: email.toLowerCase(),
-  })
-  if (!data || (Array.isArray(data) && data.length === 0)) return null
-  return Array.isArray(data) ? data[0] : data
 }
 
 export async function POST(request: NextRequest) {

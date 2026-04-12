@@ -3,24 +3,10 @@ import { createHash } from "crypto"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { sendEmail } from "@/lib/email/resend"
 import { welcomeEmail } from "@/lib/email/templates"
+import { getUserByEmail } from "@/lib/getUserByEmail"
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex")
-}
-
-interface AuthUserRow {
-  id: string
-  email: string
-  email_confirmed_at: string | null
-  raw_user_meta_data: Record<string, unknown>
-}
-
-async function getUserByEmail(email: string): Promise<AuthUserRow | null> {
-  const { data, error } = await supabaseAdmin.rpc("get_auth_user_by_email", {
-    p_email: email.toLowerCase(),
-  })
-  if (error || !data || (Array.isArray(data) && data.length === 0)) return null
-  return Array.isArray(data) ? (data[0] as AuthUserRow) : (data as AuthUserRow)
 }
 
 export async function POST(request: NextRequest) {

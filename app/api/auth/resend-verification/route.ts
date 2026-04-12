@@ -3,21 +3,10 @@ import { createHash, randomInt } from "crypto"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { sendEmail } from "@/lib/email/resend"
 import { verificationEmail } from "@/lib/email/templates"
+import { getUserByEmail } from "@/lib/getUserByEmail"
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex")
-}
-
-async function getUserByEmail(email: string) {
-  const { data, error } = await supabaseAdmin.rpc("get_auth_user_by_email", {
-    p_email: email.toLowerCase(),
-  })
-  if (error) {
-    console.error("[resend-verification] getUserByEmail RPC error:", error)
-    throw new Error("Failed to look up user by email.")
-  }
-  if (!data || (Array.isArray(data) && data.length === 0)) return null
-  return Array.isArray(data) ? data[0] : data
 }
 
 export async function POST(request: NextRequest) {

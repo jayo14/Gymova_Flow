@@ -9,9 +9,13 @@ function hashToken(token: string): string {
 }
 
 async function getUserByEmail(email: string) {
-  const { data } = await supabaseAdmin.rpc("get_auth_user_by_email", {
+  const { data, error } = await supabaseAdmin.rpc("get_auth_user_by_email", {
     p_email: email.toLowerCase(),
   })
+  if (error) {
+    console.error("[resend-verification] getUserByEmail RPC error:", error)
+    throw new Error("Failed to look up user by email.")
+  }
   if (!data || (Array.isArray(data) && data.length === 0)) return null
   return Array.isArray(data) ? data[0] : data
 }

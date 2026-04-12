@@ -1,21 +1,12 @@
 import { Resend } from "resend"
 
-const DEFAULT_FROM = "GymovaFlow <noreply@mail.gymovaflow.com>"
-
-let _resend: Resend | null = null
-
 function getResendClient(): Resend {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
     console.error("[Resend] FATAL: RESEND_API_KEY is null or undefined in process.env")
     throw new Error("RESEND_API_KEY environment variable is not set.")
   }
-  
-  if (!_resend) {
-    console.log(`[Resend] Initializing client with API key: ${apiKey.slice(0, 7)}...`)
-    _resend = new Resend(apiKey)
-  }
-  return _resend
+  return new Resend(apiKey)
 }
 
 export interface SendEmailOptions {

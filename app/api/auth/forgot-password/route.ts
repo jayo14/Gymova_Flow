@@ -18,15 +18,44 @@ function getBaseUrl(request: NextRequest): string {
 }
 
 async function getUserByEmail(email: string) {
+  const normalizedEmail = email.toLowerCase()
   const { data, error } = await supabaseAdmin.rpc("get_auth_user_by_email", {
-    p_email: email.toLowerCase(),
+    p_email: normalizedEmail,
   })
-  if (error) {
-    console.error("[forgot-password] getUserByEmail RPC error:", error)
-    throw new Error("Failed to look up user by email.")
+  if (!error) {
+    if (!data || (Array.isArray(data) && data.length === 0)) return null
+    return Array.isArray(data) ? data[0] : data
   }
-  if (!data || (Array.isArray(data) && data.length === 0)) return null
-  return Array.isArray(data) ? data[0] : data
+
+  console.error("[forgot-password] getUserByEmail RPC error:", error)
+
+  // Fallback for environments where the RPC function is not available yet.
+  let page = 1
+  const perPage = 200
+
+  while (true) {
+    const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers({
+      page,
+      perPage,
+    })
+
+    if (usersError) {
+      console.error("[forgot-password] listUsers fallback error:", usersError)
+      throw new Error("Failed to look up user by email.")
+    }
+
+    const users = usersData?.users ?? []
+    const matchedUser = users.find((user) => user.email?.toLowerCase() === normalizedEmail)
+    if (matchedUser) {
+      return { id: matchedUser.id }
+    }
+
+    if (users.length < perPage) {
+      return null
+    }
+
+    page += 1
+  }
 }
 
 export async function POST(request: NextRequest) {

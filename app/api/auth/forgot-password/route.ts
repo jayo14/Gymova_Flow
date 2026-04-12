@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "crypto"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { sendEmail } from "@/lib/email/resend"
 import { resetPasswordEmail } from "@/lib/email/templates"
+import { getUserByEmail } from "@/lib/getUserByEmail"
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex")
@@ -30,47 +31,6 @@ async function sendRecoveryEmailWithSupabase(email: string, request: NextRequest
   if (error) {
     console.error("[forgot-password] Supabase recovery email fallback failed:", error)
     throw new Error("Could not send reset link.")
-  }
-}
-
-async function getUserByEmail(email: string) {
-  const normalizedEmail = email.toLowerCase()
-  const { data, error } = await supabaseAdmin.rpc("get_auth_user_by_email", {
-    p_email: normalizedEmail,
-  })
-  if (!error) {
-    if (!data || (Array.isArray(data) && data.length === 0)) return null
-    return Array.isArray(data) ? data[0] : data
-  }
-
-  console.error("[forgot-password] getUserByEmail RPC error:", error)
-
-  // Fallback for environments where the RPC function is not available yet.
-  let page = 1
-  const perPage = 200
-
-  while (true) {
-    const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers({
-      page,
-      perPage,
-    })
-
-    if (usersError) {
-      console.error("[forgot-password] listUsers fallback error:", usersError)
-      throw new Error("Failed to look up user by email.")
-    }
-
-    const users = usersData?.users ?? []
-    const matchedUser = users.find((user) => user.email?.toLowerCase() === normalizedEmail)
-    if (matchedUser) {
-      return { id: matchedUser.id }
-    }
-
-    if (users.length < perPage) {
-      return null
-    }
-
-    page += 1
   }
 }
 

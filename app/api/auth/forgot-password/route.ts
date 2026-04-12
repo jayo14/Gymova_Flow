@@ -22,16 +22,28 @@ function isMissingAuthTokensTable(error: { code?: string; message?: string } | n
   return error?.code === "PGRST205" && (error.message ?? "").includes("public.auth_tokens")
 }
 
-async function sendRecoveryEmailWithSupabase(email: string, request: NextRequest) {
+function isSupabaseEmailRateLimitError(error: { status?: number; code?: string } | null | undefined): boolean {
+  return error?.status === 429 || error?.code === "over_email_send_rate_limit"
+}
+
+async function sendRecoveryEmailWithSupabase(email: string, request: NextRequest): Promise<NextResponse | null> {
   const baseUrl = getBaseUrl(request)
   const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
     redirectTo: `${baseUrl}/reset-password`,
   })
 
   if (error) {
+    if (isSupabaseEmailRateLimitError(error)) {
+      return NextResponse.json(
+        { error: "Please wait at least 1 minute before requesting another reset link." },
+        { status: 429 }
+      )
+    }
     console.error("[forgot-password] Supabase recovery email fallback failed:", error)
-    throw new Error("Could not send reset link.")
+    return NextResponse.json({ error: "Could not send reset link." }, { status: 500 })
   }
+
+  return null
 }
 
 export async function POST(request: NextRequest) {
@@ -61,7 +73,8 @@ export async function POST(request: NextRequest) {
 
     if (existingError) {
       if (isMissingAuthTokensTable(existingError)) {
-        await sendRecoveryEmailWithSupabase(email, request)
+        const fallbackResponse = await sendRecoveryEmailWithSupabase(email, request)
+        if (fallbackResponse) return fallbackResponse
         return NextResponse.json({ success: true })
       }
       console.error("[forgot-password] Rate-limit lookup failed:", existingError)
@@ -87,7 +100,8 @@ export async function POST(request: NextRequest) {
 
     if (deleteError) {
       if (isMissingAuthTokensTable(deleteError)) {
-        await sendRecoveryEmailWithSupabase(email, request)
+        const fallbackResponse = await sendRecoveryEmailWithSupabase(email, request)
+        if (fallbackResponse) return fallbackResponse
         return NextResponse.json({ success: true })
       }
       console.error("[forgot-password] Token cleanup failed:", deleteError)
@@ -108,7 +122,8 @@ export async function POST(request: NextRequest) {
 
     if (tokenError) {
       if (isMissingAuthTokensTable(tokenError)) {
-        await sendRecoveryEmailWithSupabase(email, request)
+        const fallbackResponse = await sendRecoveryEmailWithSupabase(email, request)
+        if (fallbackResponse) return fallbackResponse
         return NextResponse.json({ success: true })
       }
       console.error("Token insert failed:", tokenError)

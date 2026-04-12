@@ -87,11 +87,19 @@ export async function POST(request: NextRequest) {
     const baseUrl = getBaseUrl(request)
     const resetLink = `${baseUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`
 
-    await sendEmail({
-      to: email,
-      subject: "Reset your GymovaFlow password",
-      html: resetPasswordEmail(resetLink),
-    })
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Reset your GymovaFlow password",
+        html: resetPasswordEmail(resetLink),
+      })
+    } catch (emailError) {
+      console.error("Failed to send reset email:", emailError)
+      return NextResponse.json(
+        { error: "Could not send reset link. Please try again later." },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {

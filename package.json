@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test:email": "node scripts/test-email.mjs",
+    "diagnose:email": "node scripts/diagnose-email.mjs",
     "upload:templates": "node scripts/upload-resend-templates.mjs"
   },
   "dependencies": {

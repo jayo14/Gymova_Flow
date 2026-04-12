@@ -99,11 +99,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Send verification email via Resend.
-    await sendEmail({
-      to: email,
-      subject: "Verify your GymovaFlow account",
-      html: verificationEmail(otp),
-    })
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Verify your GymovaFlow account",
+        html: verificationEmail(otp),
+      })
+    } catch (emailError) {
+      console.error("Failed to send verification email during signup:", emailError)
+      // Clean up the created user and token to avoid orphaned accounts
+      await supabaseAdmin.auth.admin.deleteUser(userId)
+      await supabaseAdmin.from("auth_tokens").delete().eq("user_id", userId)
+      return NextResponse.json(
+        { error: "Could not send verification email. Please try again." },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({ success: true, userId })
   } catch (err) {

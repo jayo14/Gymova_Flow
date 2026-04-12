@@ -115,11 +115,16 @@ export async function POST(request: NextRequest) {
       // Send welcome email.
       const firstName = fullName.split(" ")[0] || "there"
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gymovaflow.com"
-      await sendEmail({
-        to: email,
-        subject: "Welcome to GymovaFlow! 🎉",
-        html: welcomeEmail(firstName, siteUrl),
-      }).catch((err) => console.error("Welcome email failed (non-fatal):", err))
+      try {
+        await sendEmail({
+          to: email,
+          subject: "Welcome to GymovaFlow! 🎉",
+          html: welcomeEmail(firstName, siteUrl),
+        })
+      } catch (emailError) {
+        console.error("Welcome email failed (non-fatal):", emailError)
+        // Don't fail verification if welcome email fails - user is already verified
+      }
     }
 
     return NextResponse.json({ success: true, accountType })

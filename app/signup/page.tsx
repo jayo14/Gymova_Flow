@@ -16,6 +16,7 @@ import {
   User,
   Briefcase,
 } from "lucide-react"
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton"
 export default function SignupPage() {
   const router = useRouter()
   const { session, loading } = useAuth()
@@ -333,6 +334,17 @@ export default function SignupPage() {
               )}
             </Button>
           </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton text="Sign up with Google" />
 
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}

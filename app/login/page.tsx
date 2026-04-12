@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getRoleRedirectPath, getTrainerStatus } from "@/lib/trainerAuth"
 import { createAdminSession } from "@/app/admin/actions"
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -245,6 +246,17 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton text="Sign in with Google" />
+          
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">

@@ -4,7 +4,7 @@
 DROP TRIGGER IF EXISTS trainers_view_read_only ON public.trainers;
 
 CREATE OR REPLACE VIEW public.trainers AS
-SELECT
+SELECT DISTINCT ON (tr.id)
   tr.id,
   tr.user_id,
   tr.name,

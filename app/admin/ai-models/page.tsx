@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Save, Power, PowerOff } from "lucide-react"
 import { listAiModelConfigs, saveAiModelConfig, toggleAiModel } from "../actions"
 
 const PROVIDER_ORDER = ["openai", "anthropic", "google", "xai", "deepseek"]
@@ -71,7 +72,7 @@ export default async function AIModelsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form action={submitSave} className="space-y-4">
+              <form action={submitSave} id={`save-${config.provider}`} className="space-y-4">
                 <input type="hidden" name="provider" value={config.provider} />
                 <div className="space-y-2">
                   <label className="text-sm text-muted-foreground">Model name</label>
@@ -81,16 +82,31 @@ export default async function AIModelsPage() {
                   <label className="text-sm text-muted-foreground">API key</label>
                   <Input name="api_key" defaultValue={config.api_key} placeholder="Paste API key" className="bg-background border-border" />
                 </div>
-                <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">Save credentials</Button>
               </form>
 
-              <form action={submitToggle}>
-                <input type="hidden" name="provider" value={config.provider} />
-                <input type="hidden" name="enabled" value={config.is_enabled ? "false" : "true"} />
-                <Button type="submit" variant="outline" className="border-border bg-transparent">
-                  {config.is_enabled ? "Disable provider" : "Enable provider"}
+              <div className="flex gap-2 justify-end">
+                <Button 
+                  type="submit" 
+                  form={`save-${config.provider}`}
+                  size="icon" 
+                  title="Save credentials" 
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Save className="w-4 h-4" />
                 </Button>
-              </form>
+                <form action={submitToggle}>
+                  <input type="hidden" name="provider" value={config.provider} />
+                  <input type="hidden" name="enabled" value={config.is_enabled ? "false" : "true"} />
+                  <Button 
+                    type="submit"
+                    variant={config.is_enabled ? "destructive" : "secondary"} 
+                    size="icon" 
+                    title={config.is_enabled ? "Disable provider" : "Enable provider"}
+                  >
+                    {config.is_enabled ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                  </Button>
+                </form>
+              </div>
             </CardContent>
           </Card>
         ))}

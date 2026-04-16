@@ -97,6 +97,8 @@ export default function OnboardingPage() {
     }
 
     const onboardingDetails = {
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
       account_type: "client",
       signup: {
         full_name: fullName,
@@ -112,8 +114,6 @@ export default function OnboardingPage() {
           id: userId,
           full_name: fullName,
           role: "client",
-          onboarding_completed: true,
-          onboarding_completed_at: new Date().toISOString(),
           onboarding_details: onboardingDetails,
         },
         { onConflict: "id" }

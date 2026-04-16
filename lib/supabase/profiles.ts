@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient"
+import { isOnboardingCompleted } from "@/lib/onboarding"
 import type { Profile } from "@/types/profile"
 
 const AVATAR_BUCKET = "avatars"
@@ -12,13 +13,20 @@ export async function getProfile(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, avatar_url, role, trainer_status, onboarding_completed, onboarding_completed_at, is_verified, email_verified_at, onboarding_details, created_at"
+      "id, full_name, avatar_url, role, trainer_status, is_verified, email_verified_at, onboarding_details, created_at"
     )
     .eq("id", userId)
     .maybeSingle()
 
   if (error) return { data: null, error: error.message }
-  return { data: data as Profile | null, error: null }
+  if (!data) return { data: null, error: null }
+
+  const normalized: Profile = {
+    ...(data as Omit<Profile, "onboarding_completed" | "onboarding_completed_at">),
+    onboarding_completed: isOnboardingCompleted(data),
+    onboarding_completed_at: null,
+  }
+  return { data: normalized, error: null }
 }
 
 /**

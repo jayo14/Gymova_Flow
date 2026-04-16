@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { isOnboardingCompleted } from "@/lib/onboarding"
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     const { data: profileState } = await supabaseAdmin
       .from("profiles")
-      .select("onboarding_completed, trainer_status")
+      .select("onboarding_details, trainer_status")
       .eq("id", user.id)
       .maybeSingle()
 
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
       success: true,
       accountType,
       session: verifyData.session,
-      onboardingCompleted: profileState?.onboarding_completed === true,
+      onboardingCompleted: isOnboardingCompleted(profileState),
       trainerStatus: profileState?.trainer_status ?? null,
     })
   } catch (err) {

@@ -32,9 +32,9 @@ export async function POST(request: NextRequest) {
           full_name: fullName,
           role: "trainer",
           trainer_status: "pending",
-          onboarding_completed: true,
-          onboarding_completed_at: new Date().toISOString(),
           onboarding_details: {
+            onboarding_completed: true,
+            onboarding_completed_at: new Date().toISOString(),
             account_type: "trainer",
             trainer: {
               specializations: Array.isArray(specializations) ? specializations : [],

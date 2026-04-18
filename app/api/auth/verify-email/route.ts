@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     const { data: profileState } = await supabaseAdmin
       .from("profiles")
-      .select("onboarding_completed, onboarding_details, trainer_status")
+      .select("onboarding_details, trainer_status")
       .eq("id", user.id)
       .maybeSingle()
 

@@ -59,8 +59,6 @@ export async function POST(request: NextRequest) {
             id: linkData.user.id,
             full_name: fullName,
             role: accountType,
-            onboarding_completed: false,
-            onboarding_completed_at: null,
             is_verified: false,
             onboarding_details: {
               onboarding_completed: false,
@@ -84,7 +82,7 @@ export async function POST(request: NextRequest) {
       try {
         const { sendEmail } = await import("@/lib/email")
         const { verificationEmail } = await import("@/lib/email/templates")
-        
+
         await sendEmail({
           to: email,
           subject: "Verify your email – GymovaFlow",
@@ -96,8 +94,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       userId: linkData?.user?.id,
       confirmationRequired: true // signup always requires confirmation
     })

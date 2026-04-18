@@ -34,8 +34,6 @@ export async function POST(request: NextRequest) {
           full_name: fullName,
           role: "trainer",
           trainer_status: "pending",
-          onboarding_completed: true,
-          onboarding_completed_at: completedAt,
           onboarding_details: {
             onboarding_completed: true,
             onboarding_completed_at: completedAt,

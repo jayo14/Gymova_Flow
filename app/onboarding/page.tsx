@@ -114,8 +114,6 @@ export default function OnboardingPage() {
           id: userId,
           full_name: fullName,
           role: "client",
-          onboarding_completed: true,
-          onboarding_completed_at: completedAt,
           onboarding_details: onboardingDetails,
         },
         { onConflict: "id" }

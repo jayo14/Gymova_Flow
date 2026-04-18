@@ -10,7 +10,7 @@ import { trainerApprovedEmail, trainerRejectedEmail } from "@/lib/email/template
 
 const ADMIN_COOKIE_NAME = "admin_session"
 
-const VALID_ROLES = ["student", "client", "trainer", "admin"] as const
+const VALID_ROLES = ["client", "trainer", "admin"] as const
 const VALID_TRAINER_STATUSES = ["pending", "approved", "rejected"] as const
 const AI_PROVIDER_CONFIGS = [
   { provider: "openai", display_name: "ChatGPT (OpenAI)", default_model: "gpt-4.1-mini" },

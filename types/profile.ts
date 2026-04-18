@@ -1,4 +1,4 @@
-export type UserRole = "student" | "client" | "trainer" | "admin"
+export type UserRole = "client" | "trainer" | "admin"
 export type TrainerStatus = "pending" | "approved" | "rejected"
 
 export type Profile = {

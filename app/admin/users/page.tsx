@@ -123,7 +123,6 @@ export default async function UsersPage({
                     <label className="grid gap-1 text-sm text-muted-foreground">
                       Role
                       <select name="role" defaultValue={user.role ?? "client"} className="h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground">
-                        <option value="student">Student</option>
                         <option value="client">Client</option>
                         <option value="trainer">Trainer</option>
                         <option value="admin">Admin</option>

@@ -1,11 +1,11 @@
 import type { Profile, TrainerStatus, UserRole } from "@/types/profile"
 
-export type AppDashboardRole = "student" | "trainer" | "admin"
+export type AppDashboardRole = "client" | "trainer" | "admin"
 
 export function normalizeUserRole(role: UserRole | null | undefined): AppDashboardRole | null {
   if (role === "admin") return "admin"
   if (role === "trainer") return "trainer"
-  if (role === "student" || role === "client") return "student"
+  if (role === "client") return "client"
   return null
 }
 
@@ -28,7 +28,7 @@ export function canAccessDashboardRoute(profile: Profile | null | undefined, pat
 
   if (pathname.startsWith("/admin")) return normalizedRole === "admin"
   if (pathname.startsWith("/trainer")) return normalizedRole === "trainer" && profile?.trainer_status === "approved"
-  if (pathname.startsWith("/dashboard")) return normalizedRole === "student" || normalizedRole === "trainer" || normalizedRole === "admin"
+  if (pathname.startsWith("/dashboard")) return normalizedRole === "client" || normalizedRole === "trainer" || normalizedRole === "admin"
   return true
 }
 

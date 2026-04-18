@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
             id: linkData.user.id,
             full_name: fullName,
             role: accountType,
+            onboarding_completed: false,
+            onboarding_completed_at: null,
             is_verified: false,
             onboarding_details: {
               onboarding_completed: false,

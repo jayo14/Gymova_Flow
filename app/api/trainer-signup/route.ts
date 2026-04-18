@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const completedAt = new Date().toISOString()
+
     // Upsert the profile row with trainer role and pending status.
     // Uses service role key — bypasses RLS regardless of email confirmation state.
     const { error: profileError } = await supabaseAdmin
@@ -32,10 +34,16 @@ export async function POST(request: NextRequest) {
           full_name: fullName,
           role: "trainer",
           trainer_status: "pending",
+          onboarding_completed: true,
+          onboarding_completed_at: completedAt,
           onboarding_details: {
             onboarding_completed: true,
-            onboarding_completed_at: new Date().toISOString(),
+            onboarding_completed_at: completedAt,
             account_type: "trainer",
+            signup: {
+              full_name: fullName,
+              email,
+            },
             trainer: {
               specializations: Array.isArray(specializations) ? specializations : [],
               certifications: certifications || null,

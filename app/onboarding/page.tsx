@@ -96,9 +96,9 @@ export default function OnboardingPage() {
       return false
     }
 
+    const completedAt = new Date().toISOString()
+
     const onboardingDetails = {
-      onboarding_completed: true,
-      onboarding_completed_at: new Date().toISOString(),
       account_type: "client",
       signup: {
         full_name: fullName,
@@ -114,6 +114,8 @@ export default function OnboardingPage() {
           id: userId,
           full_name: fullName,
           role: "client",
+          onboarding_completed: true,
+          onboarding_completed_at: completedAt,
           onboarding_details: onboardingDetails,
         },
         { onConflict: "id" }

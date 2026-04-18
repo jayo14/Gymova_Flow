@@ -13,7 +13,7 @@ export async function getProfile(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, avatar_url, role, trainer_status, is_verified, email_verified_at, onboarding_details, created_at"
+      "id, full_name, avatar_url, role, trainer_status, onboarding_completed, onboarding_completed_at, is_verified, email_verified_at, onboarding_details, created_at"
     )
     .eq("id", userId)
     .maybeSingle()
@@ -24,7 +24,7 @@ export async function getProfile(
   const normalized: Profile = {
     ...(data as Omit<Profile, "onboarding_completed" | "onboarding_completed_at">),
     onboarding_completed: isOnboardingCompleted(data),
-    onboarding_completed_at: null,
+    onboarding_completed_at: (data as { onboarding_completed_at?: string | null }).onboarding_completed_at ?? null,
   }
   return { data: normalized, error: null }
 }

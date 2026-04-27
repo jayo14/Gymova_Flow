@@ -1,0 +1,659 @@
+npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+npm warn config `--include=optional` to include them.
+npm warn config
+npm warn config       Default value does install optional deps unless otherwise omitted.
+
+> my-project@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+✓ Ready in 1409ms
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+ GET /manifest.json 404 in 1953ms (compile: -154365µs, proxy.ts: 1946ms, render: 161ms)
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+ GET / 404 in 217ms (compile: -20809µs, proxy.ts: 197ms, render: 41ms)
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+○ Compiling /_not-found/page ...
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at proxy (proxy.ts:11:38)
+   9 |
+  10 |   // Create Supabase server client for protected routes
+> 11 |   const supabase = createServerClient(
+     |                                      ^
+  12 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  13 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  14 |     {
+⨯ Error: Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
+    at module evaluation (lib/supabaseClient.ts:7:9)
+    at module evaluation (components/auth/AuthProvider.tsx:5:1)
+    at module evaluation (components/providers.tsx:4:1)
+   5 |
+   6 | if (!supabaseUrl || !supabaseAnonKey) {
+>  7 |   throw new Error('Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.')
+     |         ^
+   8 | }
+   9 |
+  10 | export const supabase = createClient(supabaseUrl, supabaseAnonKey) {
+  digest: '2116697940'
+}
+⨯ Error: Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
+    at module evaluation (lib/supabaseClient.ts:7:9)
+    at module evaluation (components/auth/AuthProvider.tsx:5:1)
+    at module evaluation (components/providers.tsx:4:1)
+   5 |
+   6 | if (!supabaseUrl || !supabaseAnonKey) {
+>  7 |   throw new Error('Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.')
+     |         ^
+   8 | }
+   9 |
+  10 | export const supabase = createClient(supabaseUrl, supabaseAnonKey) {
+  digest: '2116697940'
+}

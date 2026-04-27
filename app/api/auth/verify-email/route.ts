@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         {
           id: user.id,
           full_name: fullName,
-          role: accountType,
+          role: accountType, is_verified: true, verified_at: new Date().toISOString(),
         },
         { onConflict: "id" }
       )

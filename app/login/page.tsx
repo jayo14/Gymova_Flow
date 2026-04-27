@@ -70,7 +70,7 @@ export default function LoginPage() {
       } else {
         await clearAdminSession()
       }
-      router.replace(redirectPath)
+       router.replace(redirectPath)
     }
     void redirectFromState()
   }, [loading, session, router])
@@ -129,7 +129,7 @@ export default function LoginPage() {
           ? "trainer"
           : "client"
       setIsLoading(false)
-      await supabase.auth.signOut()
+
       router.replace(`/verify-email?email=${encodeURIComponent(email)}&type=${accountType}`)
       return
     }
@@ -159,7 +159,7 @@ export default function LoginPage() {
     }
 
     setIsLoading(false)
-    router.replace(redirectPath)
+     router.replace(redirectPath)
   }
 
   if (loading) {

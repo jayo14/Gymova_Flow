@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useMemo, useState } from "react"
+import { Suspense, useMemo, useState, useEffect, useRef } from "react"
 import { ArrowLeft, ArrowRight, CheckCircle2, Dumbbell, Mail, RefreshCw } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 
@@ -22,6 +22,7 @@ function VerifyEmailContent() {
   const [resendLoading, setResendLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const hasSentInitialOtp = useRef(false)
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,6 +89,13 @@ function VerifyEmailContent() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (email && !hasSentInitialOtp.current) {
+      hasSentInitialOtp.current = true
+      void handleResend()
+    }
+  }, [email])
 
   const handleResend = async () => {
     if (!email) {

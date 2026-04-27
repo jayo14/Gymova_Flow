@@ -10,7 +10,7 @@ export type Profile = {
   onboarding_completed: boolean
   onboarding_completed_at: string | null
   is_verified: boolean
-  email_verified_at: string | null
+  verified_at: string | null
   onboarding_details: Record<string, unknown> | null
   created_at: string | null
 }

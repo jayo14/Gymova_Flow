@@ -191,18 +191,7 @@ export default function OnboardingPage() {
       if (!success) return
 
       const existingMetadata = (user.user_metadata ?? {}) as Record<string, unknown>
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: {
-          ...existingMetadata,
-          onboarding_completed: true,
-          onboarding_completed_at: completedAt,
-        },
-      })
-
-      if (metadataError) {
-        setError("Failed to save onboarding status. Please try again.")
-        return
-      }
+      const resOnboarding = await fetch("/api/auth/onboarding", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id }) }); if (!resOnboarding.ok) { setError("Failed to save onboarding status. Please try again."); return; }
 
       if (accountType === "trainer") {
         router.replace("/trainer-pending")

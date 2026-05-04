@@ -117,7 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user?.id) return
 
-    const channelName = `profile-${user.id}`
+    // Use a unique name for each subscription instance to avoid conflicts
+    // while still filtering for the specific user's profile updates.
+    const channelId = Math.random().toString(36).slice(2, 9)
+    const channelName = `profile-${user.id}-${channelId}`
+    
     const channel = supabase
       .channel(channelName)
       .on(

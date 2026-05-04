@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient"
 import { isOnboardingCompleted } from "@/lib/onboarding"
+import { isMissingProfileColumnError } from "@/lib/supabase/profileSchema"
 import type { Profile } from "@/types/profile"
 
 const AVATAR_BUCKET = "avatars"
@@ -10,30 +11,33 @@ const AVATAR_BUCKET = "avatars"
 export async function getProfile(
   userId: string
 ): Promise<{ data: Profile | null; error: string | null }> {
-  const { data, error } = await supabase
+  // Try fetching with all columns first (the ideal schema)
+  const fullSelect = "id, full_name, avatar_url, role, trainer_status, created_at, onboarding_completed, onboarding_completed_at, is_verified, verified_at, onboarding_details"
+  
+  let { data, error } = await supabase
     .from("profiles")
-    .select(
-      "id, full_name, avatar_url, role, trainer_status, created_at, onboarding_completed, onboarding_completed_at, is_verified, verified_at, onboarding_details"
-    )
+    .select(fullSelect)
     .eq("id", userId)
     .maybeSingle()
+
+  // If it fails because of missing columns (likely migrations not run), fallback to base columns
+  if (error && isMissingProfileColumnError(error)) {
+    console.warn("[getProfile] Falling back to base columns due to missing schema fields:", error.message)
+    const fallbackSelect = "id, full_name, avatar_url, role, trainer_status, created_at"
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("profiles")
+      .select(fallbackSelect)
+      .eq("id", userId)
+      .maybeSingle()
+    
+    data = fallbackData
+    error = fallbackError
+  }
 
   if (error) return { data: null, error: error.message }
   if (!data) return { data: null, error: null }
 
-  const row = data as {
-    id: string
-    full_name: string | null
-    avatar_url: string | null
-    role: Profile["role"]
-    trainer_status: Profile["trainer_status"]
-    created_at: string | null
-    onboarding_completed: boolean | null
-    onboarding_completed_at: string | null
-    is_verified: boolean | null
-    verified_at: string | null
-    onboarding_details: Record<string, unknown> | null
-  }
+  const row = data as any // Use any for mapping flexibility
 
   const normalized: Profile = {
     id: row.id,

@@ -46,16 +46,29 @@ export async function POST(request: NextRequest) {
     // For clients: ensure their profile row exists.
     const fullName =
       (user.user_metadata as { full_name?: string } | undefined)?.full_name || email.split("@")[0]
-    const { error: profileError } = await supabaseAdmin
+    
+    const profileData: any = {
+      id: user.id,
+      full_name: fullName,
+      role: accountType,
+      is_verified: true,
+      verified_at: new Date().toISOString(),
+    }
+
+    let { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .upsert(
-        {
-          id: user.id,
-          full_name: fullName,
-          role: accountType, is_verified: true, verified_at: new Date().toISOString(),
-        },
-        { onConflict: "id" }
-      )
+      .upsert(profileData, { onConflict: "id" })
+
+    if (profileError && isMissingProfileColumnError(profileError)) {
+      console.warn("[verify-email] Falling back to minimal profile upsert due to missing schema fields")
+      // Remove verification fields and retry
+      delete profileData.is_verified
+      delete profileData.verified_at
+      const { error: retryError } = await supabaseAdmin
+        .from("profiles")
+        .upsert(profileData, { onConflict: "id" })
+      profileError = retryError
+    }
 
     if (profileError) {
       console.error("[verify-email] Profile upsert failed:", profileError)
